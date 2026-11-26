@@ -1,0 +1,2256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>INTFOSIN - KM Grand Prix 3D | Oruro, Bolivia</title>
+    <!-- Tailwind CSS para UI moderna y responsiva -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js para renderizado 3D en tiempo real -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Fuentes deportivas de Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        /* Estilos base y tipografía deportiva */
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #090d16;
+            font-family: 'Rajdhani', sans-serif;
+            color: #ffffff;
+        }
+
+        .font-racing {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Contenedor principal del canvas 3D */
+        #game-container {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Efecto de líneas de velocidad (Speed Lines) en pantalla cuando se activa el Nitro */
+        #speed-lines {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 5;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            background: radial-gradient(circle at center, transparent 45%, rgba(0, 210, 255, 0.15) 75%, rgba(255, 200, 0, 0.35) 100%);
+            box-shadow: inset 0 0 90px rgba(0, 180, 255, 0.45);
+        }
+
+        /* Glassmorphism para paneles del HUD y menús */
+        .glass-panel {
+            background: rgba(12, 18, 32, 0.78);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+        }
+
+        /* Franja decorativa Wiphala / Institucional */
+        .wiphala-bar {
+            height: 5px;
+            background: linear-gradient(90deg, 
+                #e11d48 0%, #e11d48 14.2%, 
+                #f97316 14.2%, #f97316 28.4%, 
+                #eab308 28.4%, #eab308 42.6%, 
+                #ffffff 42.6%, #ffffff 56.8%, 
+                #16a34a 56.8%, #16a34a 71%, 
+                #2563eb 71%, #2563eb 85.2%, 
+                #7e22ce 85.2%, #7e22ce 100%);
+        }
+
+        /* Botones táctiles en pantalla */
+        .touch-btn {
+            background: rgba(15, 23, 42, 0.65);
+            border: 2px solid rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(6px);
+            transition: transform 0.08s, background-color 0.08s, border-color 0.08s;
+        }
+
+        .touch-btn:active, .touch-btn.active {
+            transform: scale(0.92);
+            background: rgba(234, 179, 8, 0.45);
+            border-color: #facc15;
+        }
+
+        /* Animación de pulso para alertas */
+        @keyframes pulseFast {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.06); opacity: 0.85; }
+        }
+        .animate-pulse-fast {
+            animation: pulseFast 0.8s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Lienzo 3D -->
+    <div id="game-container"></div>
+
+    <!-- Efecto visual de túnel de velocidad / Nitro -->
+    <div id="speed-lines"></div>
+
+    <!-- ================= PANTALLA DE INICIO / GARAGE ================= -->
+    <div id="start-screen" class="fixed inset-0 z-30 flex items-center justify-center p-3 sm:p-6 bg-gradient-to-b from-slate-950/80 via-slate-900/75 to-slate-950/90 overflow-y-auto">
+        <div class="glass-panel rounded-2xl max-w-4xl w-full overflow-hidden border border-amber-500/30 my-auto">
+            <!-- Barra superior con colores institucionales y Wiphala -->
+            <div class="wiphala-bar"></div>
+            
+            <div class="p-5 sm:p-8">
+                <!-- Encabezado Institucional INTFOSIN - KM -->
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-white/10 pb-5 mb-6">
+                    <div class="flex items-center gap-4 text-center sm:text-left">
+                        <!-- Emblema SVG estilizado de INTFOSIN - KM -->
+                        <div class="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-red-600 via-amber-500 to-yellow-400 p-1 shadow-lg shadow-amber-500/20 flex-shrink-0">
+                            <div class="w-full h-full rounded-full bg-slate-900 flex flex-col items-center justify-center border-2 border-yellow-300 relative overflow-hidden">
+                                <div class="wiphala-bar w-full absolute top-0"></div>
+                                <span class="font-racing font-black text-xs sm:text-sm text-yellow-400 tracking-wider leading-none mt-1">KM</span>
+                                <span class="text-[9px] font-bold text-white tracking-tight leading-none mt-0.5">INTFOSIN</span>
+                                <span class="text-[7px] text-amber-300 uppercase mt-0.5">Oruro • Bolivia</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-xs font-bold uppercase tracking-wider mb-1">
+                                <span>🏔️ Circuito Altiplano • 3.735 m s. n. m.</span>
+                            </div>
+                            <h1 class="font-racing text-2xl sm:text-4xl font-black tracking-wider text-white uppercase">
+                                GRAND PRIX <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-amber-400 to-emerald-400">KHANA MARKA</span>
+                            </h1>
+                            <p class="text-xs sm:text-sm text-slate-300 font-medium">
+                                Instituto Técnico de Formación Superior Intercultural <strong class="text-amber-400">"INTFOSIN - KM"</strong> • Oruro, Bolivia
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Botón de Audio -->
+                    <button id="toggle-sound-menu" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-bold flex items-center gap-2 transition">
+                        <span id="sound-icon-menu">🔊</span>
+                        <span>AUDIO SINTETIZADO</span>
+                    </button>
+                </div>
+
+                <!-- Selección de Vehículo y Dificultad -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    <!-- Columna 1: Selección de Auto -->
+                    <div>
+                        <h2 class="font-racing text-sm uppercase tracking-wider text-amber-400 mb-3 flex items-center gap-2">
+                            <span>🏎️</span> 1. Selecciona tu Prototipo
+                        </h2>
+                        <div class="space-y-2.5" id="car-selector">
+                            <!-- Auto 1: Khana Marka GT-R (Institucional) -->
+                            <div data-car="0" class="car-option cursor-pointer p-3 rounded-xl border-2 border-amber-400 bg-amber-500/15 transition flex items-center justify-between">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-racing font-bold text-white text-sm sm:text-base">KM-01 KHANA MARKA GT</span>
+                                        <span class="text-[10px] px-2 py-0.5 rounded bg-red-600 text-white font-bold">OFICIAL</span>
+                                    </div>
+                                    <p class="text-xs text-slate-300 mt-0.5">Librea Tricolor & Wiphala • Equilibrio perfecto en curvas</p>
+                                </div>
+                                <div class="text-right text-xs font-bold text-amber-300">
+                                    <div>VEL: 315 km/h</div>
+                                    <div>ACEL: ★★★★☆</div>
+                                </div>
+                            </div>
+
+                            <!-- Auto 2: Sajama Turbo RS -->
+                            <div data-car="1" class="car-option cursor-pointer p-3 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition flex items-center justify-between">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-racing font-bold text-white text-sm sm:text-base">SAJAMA V8 BITURBO</span>
+                                        <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-600 text-white font-bold">VELOCIDAD</span>
+                                    </div>
+                                    <p class="text-xs text-slate-300 mt-0.5">Alta velocidad punta para rectas del Altiplano</p>
+                                </div>
+                                <div class="text-right text-xs font-bold text-emerald-400">
+                                    <div>VEL: 340 km/h</div>
+                                    <div>ACEL: ★★★☆☆</div>
+                                </div>
+                            </div>
+
+                            <!-- Auto 3: Quirquincho Evo Rally -->
+                            <div data-car="2" class="car-option cursor-pointer p-3 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition flex items-center justify-between">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-racing font-bold text-white text-sm sm:text-base">ORURO APEX EVO</span>
+                                        <span class="text-[10px] px-2 py-0.5 rounded bg-sky-600 text-white font-bold">AGILIDAD</span>
+                                    </div>
+                                    <p class="text-xs text-slate-300 mt-0.5">Aceleración explosiva y agarre superior en chicanas</p>
+                                </div>
+                                <div class="text-right text-xs font-bold text-sky-400">
+                                    <div>VEL: 300 km/h</div>
+                                    <div>ACEL: ★★★★★</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Columna 2: Dificultad y Controles -->
+                    <div class="flex flex-col justify-between">
+                        <div>
+                            <h2 class="font-racing text-sm uppercase tracking-wider text-amber-400 mb-3 flex items-center gap-2">
+                                <span>⚙️</span> 2. Nivel de Competencia
+                            </h2>
+                            <div class="grid grid-cols-3 gap-2 mb-5" id="difficulty-selector">
+                                <button data-diff="easy" class="diff-option py-2.5 px-2 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-xs font-bold uppercase transition">
+                                    Novato<br><span class="text-[10px] text-slate-400 font-normal">2 Vueltas</span>
+                                </button>
+                                <button data-diff="normal" class="diff-option py-2.5 px-2 rounded-xl border-2 border-amber-400 bg-amber-500/20 text-xs font-bold uppercase text-amber-300 transition">
+                                    Profesional<br><span class="text-[10px] text-amber-200/80 font-normal">3 Vueltas</span>
+                                </button>
+                                <button data-diff="hard" class="diff-option py-2.5 px-2 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-xs font-bold uppercase transition">
+                                    Maestro KM<br><span class="text-[10px] text-slate-400 font-normal">3 Vueltas + Tráfico</span>
+                                </button>
+                            </div>
+
+                            <!-- Guía rápida de controles -->
+                            <div class="p-3.5 rounded-xl bg-slate-950/70 border border-white/10">
+                                <h3 class="text-xs font-bold uppercase text-slate-300 mb-2">Controles de Conducción:</h3>
+                                <div class="grid grid-cols-2 gap-2 text-xs text-slate-300">
+                                    <div class="flex items-center gap-2">
+                                        <kbd class="px-2 py-0.5 bg-slate-800 border border-slate-600 rounded text-amber-400 font-mono">W / ↑</kbd>
+                                        <span>Acelerar</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <kbd class="px-2 py-0.5 bg-slate-800 border border-slate-600 rounded text-amber-400 font-mono">S / ↓</kbd>
+                                        <span>Frenar / Reversa</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <kbd class="px-2 py-0.5 bg-slate-800 border border-slate-600 rounded text-amber-400 font-mono">A D / ← →</kbd>
+                                        <span>Dirección</span>
+                                    </div>
+                                    <div class="flex items-center gap-2">
+                                        <kbd class="px-2 py-0.5 bg-slate-800 border border-slate-600 rounded text-cyan-400 font-mono">SHIFT / N</kbd>
+                                        <span>Turbo Nitro</span>
+                                    </div>
+                                    <div class="flex items-center gap-2 col-span-2">
+                                        <kbd class="px-2 py-0.5 bg-slate-800 border border-slate-600 rounded text-rose-400 font-mono">ESPACIO</kbd>
+                                        <span>Freno de mano (Derrape) • <kbd class="px-1.5 py-0.5 bg-slate-800 border border-slate-600 rounded text-white font-mono">C</kbd> Cambiar Cámara</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botón Iniciar Carrera -->
+                        <button id="start-race-btn" class="mt-5 w-full py-4 rounded-xl font-racing font-black text-base sm:text-lg tracking-widest uppercase bg-gradient-to-r from-red-600 via-amber-500 to-emerald-600 hover:from-red-500 hover:via-amber-400 hover:to-emerald-500 text-slate-950 shadow-lg shadow-amber-500/30 transform hover:scale-[1.01] active:scale-[0.99] transition cursor-pointer">
+                            🏁 INICIAR CARRERA
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= HUD EN CARRERA ================= -->
+    <div id="hud" class="fixed inset-0 z-20 pointer-events-none hidden flex flex-col justify-between p-3 sm:p-5">
+        
+        <!-- Barra Superior del HUD: Posición, Vuelta, Tiempo y Progreso -->
+        <div class="flex flex-wrap items-start justify-between gap-2">
+            
+            <!-- Bloque Izquierdo: Posición y Vueltas -->
+            <div class="glass-panel rounded-xl px-3.5 py-2 flex items-center gap-4 border-l-4 border-amber-400">
+                <div>
+                    <div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Posición</div>
+                    <div class="font-racing text-2xl sm:text-3xl font-black text-amber-400 leading-none">
+                        <span id="hud-pos">1</span><span class="text-sm text-slate-300 font-bold">/6</span>
+                    </div>
+                </div>
+                <div class="h-8 w-px bg-white/15"></div>
+                <div>
+                    <div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Vuelta</div>
+                    <div class="font-racing text-xl sm:text-2xl font-bold text-white leading-none">
+                        <span id="hud-lap">1</span><span class="text-sm text-slate-400">/<span id="hud-max-laps">3</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bloque Central: Barra de progreso del circuito e identidad institucional -->
+            <div class="hidden md:flex flex-col items-center glass-panel rounded-xl px-5 py-2 min-w-[280px]">
+                <div class="flex items-center justify-between w-full text-[11px] font-bold tracking-wider uppercase mb-1">
+                    <span class="text-amber-400">INTFOSIN - KM</span>
+                    <span class="text-slate-300">CIRCUITO KHANA MARKA</span>
+                </div>
+                <!-- Barra de progreso de carrera -->
+                <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden relative border border-white/10">
+                    <div id="hud-progress-bar" class="h-full bg-gradient-to-r from-red-500 via-amber-400 to-emerald-400 w-0 transition-all duration-100"></div>
+                </div>
+            </div>
+
+            <!-- Bloque Derecho: Cronómetro y Botones Rápidos -->
+            <div class="flex items-center gap-2 pointer-events-auto">
+                <div class="glass-panel rounded-xl px-3.5 py-2 text-right border-r-4 border-emerald-400">
+                    <div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Tiempo</div>
+                    <div id="hud-time" class="font-racing text-lg sm:text-2xl font-bold text-white leading-none">00:00.00</div>
+                </div>
+                <button id="btn-camera" title="Cambiar Cámara (C)" class="glass-panel p-2.5 rounded-xl hover:bg-white/15 text-sm font-bold transition">
+                    🎥
+                </button>
+                <button id="btn-pause" title="Pausar / Reiniciar" class="glass-panel p-2.5 rounded-xl hover:bg-white/15 text-sm font-bold transition">
+                    ⏸️
+                </button>
+            </div>
+        </div>
+
+        <!-- Semáforo de Largada / Mensajes Centrales -->
+        <div id="center-banner" class="self-center text-center my-auto">
+            <div id="countdown-display" class="font-racing text-6xl sm:text-8xl font-black text-amber-400 drop-shadow-[0_5px_25px_rgba(251,191,36,0.6)] hidden">
+                3
+            </div>
+            <div id="wrong-way-alert" class="hidden px-5 py-2 rounded-xl bg-red-600/90 border-2 border-white font-racing font-black text-lg sm:text-2xl tracking-wider uppercase animate-pulse-fast">
+                ⚠️ SENTIDO CONTRARIO
+            </div>
+        </div>
+
+        <!-- Zona Inferior del HUD: Controles Táctiles (Móvil) + Tacómetro Digital/Analógico -->
+        <div class="flex items-end justify-between gap-2 w-full">
+            
+            <!-- Controles Táctiles Izquierdos (Dirección) -->
+            <div id="mobile-controls-left" class="flex md:hidden items-center gap-2 pointer-events-auto pb-1">
+                <button id="touch-left" class="touch-btn w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-lg">◀</button>
+                <button id="touch-right" class="touch-btn w-16 h-16 rounded-2xl flex items-center justify-center text-2xl font-bold shadow-lg">▶</button>
+            </div>
+
+            <!-- Minimapa del Circuito (Solo escritorio/tablet) -->
+            <div class="hidden sm:block glass-panel rounded-2xl p-2 border border-white/15">
+                <canvas id="minimap-canvas" width="130" height="130" class="rounded-xl bg-slate-950/70"></canvas>
+            </div>
+
+            <!-- Instrumentación Central/Derecha: Velocímetro, RPM, Marcha y Nitro -->
+            <div class="glass-panel rounded-2xl p-3 sm:p-4 flex items-center gap-3 sm:gap-5 border-b-4 border-red-500 ml-auto md:ml-0">
+                
+                <!-- Barra de Nitro -->
+                <div class="flex flex-col items-center">
+                    <span class="text-[10px] font-racing font-bold text-cyan-400 tracking-wider mb-1">NITRO</span>
+                    <div class="w-3.5 sm:w-4 h-20 sm:h-24 bg-slate-900 rounded-full p-0.5 border border-cyan-500/40 flex flex-col justify-end overflow-hidden">
+                        <div id="hud-nitro-bar" class="w-full bg-gradient-to-t from-blue-600 via-cyan-400 to-white rounded-full transition-all duration-75" style="height: 100%;"></div>
+                    </div>
+                </div>
+
+                <!-- Tacómetro Circular SVG + Velocidad Digital -->
+                <div class="relative w-28 h-28 sm:w-36 sm:h-36 flex items-center justify-center">
+                    <svg class="w-full h-full -rotate-90" viewBox="0 0 120 120">
+                        <!-- Arco de fondo -->
+                        <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="10" stroke-dasharray="235 314" stroke-linecap="round"/>
+                        <!-- Arco dinámico de RPM -->
+                        <circle id="rpm-arc" cx="60" cy="60" r="50" fill="none" stroke="url(#rpmGrad)" stroke-width="10" stroke-dasharray="0 314" stroke-linecap="round"/>
+                        <defs>
+                            <linearGradient id="rpmGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stop-color="#10b981"/>
+                                <stop offset="65%" stop-color="#f59e0b"/>
+                                <stop offset="100%" stop-color="#ef4444"/>
+                            </linearGradient>
+                        </defs>
+                    </svg>
+                    
+                    <!-- Lectura central de velocidad y marcha -->
+                    <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                        <div id="hud-gear" class="w-6 h-6 sm:w-7 sm:h-7 rounded-md bg-amber-500 text-slate-950 font-racing font-black text-xs sm:text-sm flex items-center justify-center mb-0.5 shadow">
+                            N
+                        </div>
+                        <div id="hud-speed" class="font-racing text-2xl sm:text-4xl font-black text-white leading-none tracking-tight">
+                            0
+                        </div>
+                        <div class="text-[9px] sm:text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                            KM/H
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controles Táctiles Derechos (Pedales + Nitro) -->
+            <div id="mobile-controls-right" class="flex md:hidden items-end gap-2 pointer-events-auto pb-1">
+                <div class="flex flex-col gap-2">
+                    <button id="touch-nitro" class="touch-btn px-3 py-2 rounded-xl text-xs font-racing font-bold text-cyan-300 border-cyan-400/50">🔥 N2O</button>
+                    <button id="touch-brake" class="touch-btn w-14 h-14 rounded-2xl flex items-center justify-center text-xs font-bold text-rose-400 border-rose-400/50">FRENO</button>
+                </div>
+                <button id="touch-gas" class="touch-btn w-16 h-24 rounded-2xl flex items-center justify-center text-sm font-racing font-bold text-emerald-400 border-emerald-400/50">GAS</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= MODAL DE PAUSA ================= -->
+    <div id="pause-modal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-950/80 backdrop-blur-md p-4">
+        <div class="glass-panel rounded-2xl max-w-sm w-full p-6 text-center border border-amber-400/30">
+            <h2 class="font-racing text-2xl font-black text-amber-400 mb-2">CARRERA EN PAUSA</h2>
+            <p class="text-sm text-slate-300 mb-6">Circuito INTFOSIN - KM • Oruro, Bolivia</p>
+            <div class="space-y-3">
+                <button id="btn-resume" class="w-full py-3 rounded-xl font-racing font-bold bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition">
+                    ▶ CONTINUAR
+                </button>
+                <button id="btn-restart" class="w-full py-3 rounded-xl font-racing font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 transition">
+                    🔄 REINICIAR CARRERA
+                </button>
+                <button id="btn-quit" class="w-full py-3 rounded-xl font-racing font-bold bg-white/10 hover:bg-white/20 text-white transition">
+                    🏠 VOLVER AL MENÚ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= PANTALLA DE RESULTADOS FINALES ================= -->
+    <div id="finish-modal" class="fixed inset-0 z-40 hidden items-center justify-center bg-slate-950/85 backdrop-blur-md p-4">
+        <div class="glass-panel rounded-2xl max-w-md w-full overflow-hidden border border-amber-400/40 text-center">
+            <div class="wiphala-bar"></div>
+            <div class="p-6 sm:p-8">
+                <div class="text-4xl mb-2" id="finish-trophy">🏆</div>
+                <h2 class="font-racing text-2xl sm:text-3xl font-black text-white uppercase" id="finish-title">¡CARRERA FINALIZADA!</h2>
+                <p class="text-xs text-amber-300 font-bold uppercase tracking-wider mt-1 mb-5">
+                    Gran Premio INTFOSIN - KM • Khana Marka
+                </p>
+
+                <div class="bg-slate-900/80 rounded-xl p-4 border border-white/10 space-y-2.5 mb-6 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Posición Final:</span>
+                        <span id="finish-pos" class="font-racing font-black text-amber-400 text-lg">1° Lugar</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Tiempo Total:</span>
+                        <span id="finish-time" class="font-racing font-bold text-white">01:42.35</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-slate-400">Velocidad Máxima:</span>
+                        <span id="finish-top-speed" class="font-racing font-bold text-emerald-400">318 km/h</span>
+                    </div>
+                </div>
+
+                <div class="flex gap-3">
+                    <button id="btn-finish-restart" class="flex-1 py-3.5 rounded-xl font-racing font-bold text-xs sm:text-sm bg-gradient-to-r from-amber-500 to-emerald-500 text-slate-950 hover:opacity-95 transition">
+                        🔄 CORRER DE NUEVO
+                    </button>
+                    <button id="btn-finish-menu" class="flex-1 py-3.5 rounded-xl font-racing font-bold text-xs sm:text-sm bg-white/10 hover:bg-white/20 text-white transition">
+                        🏠 GARAGE
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * ============================================================================
+         * MOTOR DE VIDEOJUEGO DE CARRERAS 3D - INTFOSIN - KM GRAND PRIX (ORURO, BOLIVIA)
+         * ============================================================================
+         * Arquitectura:
+         * 1. Sistema de Audio Sintetizado (Web Audio API): Motor multi-oscilador con
+         *    modulación de RPM, descarga de turbo, chirrido de neumáticos y colisiones.
+         * 2. Generador Procedural de Texturas (Canvas 2D -> THREE.CanvasTexture):
+         *    Asfalto realista, bordillos rojo/blanco, vallas publicitarias INTFOSIN-KM,
+         *    pórtico de salida/meta y librea institucional con detalles de la Wiphala.
+         * 3. Circuito 3D cerrado mediante CatmullRomCurve3 con elevaciones (colinas)
+         *    y curvas peraltadas estilo circuito del Altiplano boliviano.
+         * 4. Físicas de conducción: Transmisión de 6 marchas, curva de par motor,
+         *    transferencia de peso (cabeceo y balanceo de carrocería), derrape,
+         *    nitro y sistema de partículas (humo de llantas y fuego de escape).
+         * 5. Inteligencia Artificial de 5 rivales + vehículos de tráfico opcionales.
+         * ============================================================================
+         */
+
+        // -------------------- 1. SISTEMA DE AUDIO WEB AUDIO API --------------------
+        class EngineAudio {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+                this.initialized = false;
+                this.osc1 = null;
+                this.osc2 = null;
+                this.subOsc = null;
+                this.engineGain = null;
+                this.skidGain = null;
+                this.nitroGain = null;
+            }
+
+            init() {
+                if (this.initialized) return;
+                try {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    this.ctx = new AudioCtx();
+
+                    // Osciladores del motor (V8 / Turbo)
+                    this.osc1 = this.ctx.createOscillator();
+                    this.osc2 = this.ctx.createOscillator();
+                    this.subOsc = this.ctx.createOscillator();
+
+                    this.osc1.type = 'sawtooth';
+                    this.osc2.type = 'triangle';
+                    this.subOsc.type = 'sine';
+
+                    // Filtro paso bajo para dar cuerpo realista al motor
+                    const filter = this.ctx.createBiquadFilter();
+                    filter.type = 'lowpass';
+                    filter.frequency.value = 420;
+                    this.engineFilter = filter;
+
+                    this.engineGain = this.ctx.createGain();
+                    this.engineGain.gain.value = 0.0;
+
+                    this.osc1.connect(filter);
+                    this.osc2.connect(filter);
+                    this.subOsc.connect(filter);
+                    filter.connect(this.engineGain);
+                    this.engineGain.connect(this.ctx.destination);
+
+                    this.osc1.start();
+                    this.osc2.start();
+                    this.subOsc.start();
+
+                    // Generador de ruido blanco para chirrido de llantas y viento/nitro
+                    const bufferSize = this.ctx.sampleRate * 2;
+                    const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+                    const output = noiseBuffer.getChannelData(0);
+                    for (let i = 0; i < bufferSize; i++) {
+                        output[i] = Math.random() * 2 - 1;
+                    }
+
+                    // Canal de derrape (neumáticos)
+                    const skidNoise = this.ctx.createBufferSource();
+                    skidNoise.buffer = noiseBuffer;
+                    skidNoise.loop = true;
+
+                    const skidFilter = this.ctx.createBiquadFilter();
+                    skidFilter.type = 'bandpass';
+                    skidFilter.frequency.value = 1350;
+                    skidFilter.Q.value = 4.5;
+
+                    this.skidGain = this.ctx.createGain();
+                    this.skidGain.gain.value = 0;
+
+                    skidNoise.connect(skidFilter);
+                    skidFilter.connect(this.skidGain);
+                    this.skidGain.connect(this.ctx.destination);
+                    skidNoise.start();
+
+                    // Canal de Turbo Nitro
+                    const nitroNoise = this.ctx.createBufferSource();
+                    nitroNoise.buffer = noiseBuffer;
+                    nitroNoise.loop = true;
+
+                    const nitroFilter = this.ctx.createBiquadFilter();
+                    nitroFilter.type = 'highpass';
+                    nitroFilter.frequency.value = 900;
+
+                    this.nitroGain = this.ctx.createGain();
+                    this.nitroGain.gain.value = 0;
+
+                    nitroNoise.connect(nitroFilter);
+                    nitroFilter.connect(this.nitroGain);
+                    this.nitroGain.connect(this.ctx.destination);
+                    nitroNoise.start();
+
+                    this.initialized = true;
+                } catch (e) {
+                    console.warn("Web Audio API no disponible:", e);
+                }
+            }
+
+            update(rpmRatio, throttle, isSkidding, isNitro, isPaused) {
+                if (!this.initialized || !this.enabled || isPaused) {
+                    if (this.engineGain) this.engineGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
+                    if (this.skidGain) this.skidGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
+                    if (this.nitroGain) this.nitroGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.05);
+                    return;
+                }
+
+                if (this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+
+                const now = this.ctx.currentTime;
+                // Frecuencia base proporcional a las RPM (entre 45 Hz ralentí y 240 Hz corte)
+                const baseFreq = 45 + rpmRatio * 185 + (isNitro ? 35 : 0);
+                this.osc1.frequency.setTargetAtTime(baseFreq, now, 0.03);
+                this.osc2.frequency.setTargetAtTime(baseFreq * 1.5, now, 0.03);
+                this.subOsc.frequency.setTargetAtTime(baseFreq * 0.5, now, 0.03);
+
+                // Apertura del filtro según acelerador
+                this.engineFilter.frequency.setTargetAtTime(300 + rpmRatio * 950 + (throttle ? 300 : 0), now, 0.05);
+                this.engineGain.gain.setTargetAtTime(0.08 + rpmRatio * 0.07 + (throttle ? 0.03 : 0), now, 0.05);
+
+                // Chirrido de neumáticos
+                this.skidGain.gain.setTargetAtTime(isSkidding ? 0.065 : 0, now, 0.04);
+
+                // Sonido de turbina Nitro
+                this.nitroGain.gain.setTargetAtTime(isNitro ? 0.09 : 0, now, 0.05);
+            }
+
+            playBeep(freq = 520, duration = 0.15) {
+                if (!this.initialized || !this.enabled) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = freq;
+                gain.gain.setValueAtTime(0.15, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + duration);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + duration);
+            }
+
+            playCrash() {
+                if (!this.initialized || !this.enabled) return;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(110, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(28, this.ctx.currentTime + 0.25);
+                gain.gain.setValueAtTime(0.22, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.25);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.25);
+            }
+        }
+
+        const audio = new EngineAudio();
+
+        // -------------------- 2. GENERADOR DE TEXTURAS INSTITUCIONALES Y PISTA --------------------
+        function createRoadTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            // Base de asfalto granular
+            ctx.fillStyle = '#262930';
+            ctx.fillRect(0, 0, 512, 512);
+
+            // Ruido de textura de pavimento
+            for (let i = 0; i < 6500; i++) {
+                const x = Math.random() * 512;
+                const y = Math.random() * 512;
+                const shade = 30 + Math.floor(Math.random() * 25);
+                ctx.fillStyle = `rgb(${shade},${shade},${shade + 4})`;
+                ctx.fillRect(x, y, 2, 2);
+            }
+
+            // Bordillos laterales (Pianos rojo y blanco estilo circuito FIA)
+            const curbWidth = 28;
+            for (let y = 0; y < 512; y += 64) {
+                ctx.fillStyle = (y / 64) % 2 === 0 ? '#dc2626' : '#f8fafc';
+                ctx.fillRect(0, y, curbWidth, 64);
+                ctx.fillRect(512 - curbWidth, y, curbWidth, 64);
+            }
+
+            // Líneas blancas continuas interiores
+            ctx.fillStyle = '#e2e8f0';
+            ctx.fillRect(curbWidth + 4, 0, 5, 512);
+            ctx.fillRect(512 - curbWidth - 9, 0, 5, 512);
+
+            // Líneas discontinuas de carriles
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.65)';
+            ctx.fillRect(253, 30, 6, 180);
+            ctx.fillRect(253, 290, 6, 180);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            tex.anisotropy = 8;
+            return tex;
+        }
+
+        // Valla publicitaria institucional INTFOSIN - KM / Khana Marka
+        function createBillboardTexture(variant = 0) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 192;
+            const ctx = canvas.getContext('2d');
+
+            // Fondo degradado institucional
+            const grad = ctx.createLinearGradient(0, 0, 512, 192);
+            if (variant === 0) {
+                grad.addColorStop(0, '#991b1b');
+                grad.addColorStop(0.5, '#b45309');
+                grad.addColorStop(1, '#065f46');
+            } else {
+                grad.addColorStop(0, '#0f172a');
+                grad.addColorStop(1, '#1e293b');
+            }
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 512, 192);
+
+            // Borde dorado
+            ctx.strokeStyle = '#facc15';
+            ctx.lineWidth = 8;
+            ctx.strokeRect(4, 4, 504, 184);
+
+            // Dibujo de Wiphala diagonal a la izquierda
+            const wColors = ['#e11d48', '#f97316', '#eab308', '#ffffff', '#16a34a', '#2563eb', '#7e22ce'];
+            const cell = 18;
+            for (let r = 0; r < 7; r++) {
+                for (let c = 0; c < 7; c++) {
+                    ctx.fillStyle = wColors[(r + c) % 7];
+                    ctx.fillRect(24 + c * cell, 32 + r * cell, cell, cell);
+                }
+            }
+
+            // Textos Institucionales
+            ctx.fillStyle = '#facc15';
+            ctx.font = '900 38px Orbitron, sans-serif';
+            ctx.fillText('INTFOSIN - KM', 175, 72);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 20px Rajdhani, sans-serif';
+            ctx.fillText('INSTITUTO TÉCNICO "KHANA MARKA"', 175, 105);
+
+            ctx.fillStyle = '#fde047';
+            ctx.font = 'bold 18px Rajdhani, sans-serif';
+            ctx.fillText('ORURO • BOLIVIA   |   AMA SUA • AMA LLULLA • AMA QHILLA', 175, 138);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.anisotropy = 4;
+            return tex;
+        }
+
+        // Textura para el pórtico de Salida / Meta
+        function createStartArchTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, 1024, 256);
+
+            // Franja superior Wiphala
+            const wColors = ['#e11d48', '#f97316', '#eab308', '#ffffff', '#16a34a', '#2563eb', '#7e22ce'];
+            const stripeW = 1024 / 7;
+            wColors.forEach((col, idx) => {
+                ctx.fillStyle = col;
+                ctx.fillRect(idx * stripeW, 0, stripeW + 1, 24);
+                ctx.fillRect(idx * stripeW, 232, stripeW + 1, 24);
+            });
+
+            // Texto central
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#facc15';
+            ctx.font = '900 54px Orbitron, sans-serif';
+            ctx.fillText('INTFOSIN - KM  •  META', 512, 115);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 28px Rajdhani, sans-serif';
+            ctx.fillText('INSTITUTO TÉCNICO DE FORMACIÓN SUPERIOR INTERCULTURAL "KHANA MARKA" - ORURO', 512, 168);
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.anisotropy = 4;
+            return tex;
+        }
+
+        // Textura procedural de la Wiphala (patrón ajedrezado diagonal de 7 colores) para el casco del piloto
+        function createWiphalaTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+            const wColors = ['#e11d48', '#f97316', '#eab308', '#ffffff', '#16a34a', '#2563eb', '#7e22ce'];
+            const grid = 14;
+            const step = 256 / grid;
+            for (let r = 0; r < grid; r++) {
+                for (let c = 0; c < grid; c++) {
+                    ctx.fillStyle = wColors[(r + c) % 7];
+                    ctx.fillRect(c * step, r * step, step + 1, step + 1);
+                }
+            }
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.anisotropy = 4;
+            return tex;
+        }
+
+        // Textura procedural de Aguayo Andino (poncho / chalina multicolor con franjas geométricas)
+        function createAguayoTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+            const stripes = [
+                { h: 18, c: '#be123c' },
+                { h: 10, c: '#facc15' },
+                { h: 14, c: '#15803d' },
+                { h: 22, c: '#1d4ed8' },
+                { h: 12, c: '#f97316' },
+                { h: 16, c: '#ffffff' },
+                { h: 18, c: '#7e22ce' },
+                { h: 18, c: '#dc2626' }
+            ];
+            let y = 0;
+            stripes.forEach(s => {
+                ctx.fillStyle = s.c;
+                ctx.fillRect(0, y, 256, s.h);
+                // Detalle tejido geométrico andino
+                ctx.fillStyle = 'rgba(255,255,255,0.45)';
+                for (let x = 0; x < 256; x += 16) {
+                    ctx.fillRect(x + 4, y + s.h * 0.35, 6, s.h * 0.3);
+                }
+                y += s.h;
+            });
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            return tex;
+        }
+
+        // Textura para la placa trasera "BOLIVIA ORURO"
+        function createPlateTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 128;
+            const ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#f8fafc';
+            ctx.fillRect(0, 0, 256, 128);
+            ctx.strokeStyle = '#1e293b';
+            ctx.lineWidth = 8;
+            ctx.strokeRect(4, 4, 248, 120);
+
+            // Bandera tricolor boliviana arriba a la derecha
+            ctx.fillStyle = '#dc2626';
+            ctx.fillRect(198, 14, 38, 8);
+            ctx.fillStyle = '#facc15';
+            ctx.fillRect(198, 22, 38, 8);
+            ctx.fillStyle = '#16a34a';
+            ctx.fillRect(198, 30, 38, 8);
+
+            ctx.fillStyle = '#1e3a8a';
+            ctx.font = 'bold 22px Rajdhani, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('BOLIVIA', 115, 36);
+
+            ctx.fillStyle = '#0f172a';
+            ctx.font = '900 50px Orbitron, sans-serif';
+            ctx.fillText('ORURO', 128, 96);
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // Emblema circular INTFOSIN - KM para puertas y parte trasera del auto
+        function createEmblemTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 256;
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            // Aro exterior dorado y rojo institucional
+            ctx.beginPath();
+            ctx.arc(128, 128, 122, 0, Math.PI * 2);
+            ctx.fillStyle = '#facc15';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(128, 128, 110, 0, Math.PI * 2);
+            ctx.fillStyle = '#dc2626';
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.arc(128, 128, 86, 0, Math.PI * 2);
+            ctx.fillStyle = '#991b1b';
+            ctx.fill();
+
+            // Mini Wiphala interior
+            const wColors = ['#e11d48', '#f97316', '#eab308', '#ffffff', '#16a34a', '#2563eb', '#7e22ce'];
+            for (let r = 0; r < 6; r++) {
+                for (let c = 0; c < 6; c++) {
+                    ctx.fillStyle = wColors[(r + c) % 7];
+                    ctx.fillRect(58 + c * 11, 88 + r * 11, 11, 11);
+                }
+            }
+
+            ctx.fillStyle = '#facc15';
+            ctx.font = '900 32px Orbitron, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('KM', 155, 126);
+
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 20px Rajdhani, sans-serif';
+            ctx.fillText('INTFOSIN - KM', 128, 182);
+
+            ctx.fillStyle = '#0f172a';
+            ctx.font = '900 18px Rajdhani, sans-serif';
+            ctx.fillText('ORURO BOLIVIA', 128, 228);
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // -------------------- 3. CONFIGURACIÓN DE ESCENA 3D (THREE.JS) --------------------
+        const container = document.getElementById('game-container');
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x60a5fa);
+        scene.fog = new THREE.FogExp2(0x7dd3fc, 0.0014);
+
+        const camera = new THREE.PerspectiveCamera(65, window.innerWidth / window.innerHeight, 0.1, 1400);
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        container.appendChild(renderer.domElement);
+
+        // Iluminación del Altiplano Boliviano (Sol brillante de altura + luz hemisférica)
+        const hemiLight = new THREE.HemisphereLight(0xe0f2fe, 0x854d0e, 0.85);
+        scene.add(hemiLight);
+
+        const dirLight = new THREE.DirectionalLight(0xfffbeb, 1.25);
+        dirLight.position.set(180, 320, 140);
+        dirLight.castShadow = true;
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.camera.near = 10;
+        dirLight.shadow.camera.far = 900;
+        const d = 280;
+        dirLight.shadow.camera.left = -d;
+        dirLight.shadow.camera.right = d;
+        dirLight.shadow.camera.top = d;
+        dirLight.shadow.camera.bottom = -d;
+        scene.add(dirLight);
+
+        // Terreno del Altiplano (Tierra ocre / paja brava)
+        const groundGeo = new THREE.PlaneGeometry(3600, 3600);
+        const groundMat = new THREE.MeshStandardMaterial({
+            color: 0xa16207,
+            roughness: 0.92,
+            metalness: 0.05
+        });
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        ground.position.y = -0.35;
+        ground.receiveShadow = true;
+        scene.add(ground);
+
+        // -------------------- 4. CONSTRUCCIÓN DEL CIRCUITO 3D --------------------
+        // Puntos de control de la pista cerrada con curvas rápidas, chicanas y colinas
+        const trackPoints = [
+            new THREE.Vector3(0, 0, 0),
+            new THREE.Vector3(0, 0, -240),
+            new THREE.Vector3(95, 6, -460),
+            new THREE.Vector3(280, 14, -560),
+            new THREE.Vector3(490, 8, -480),
+            new THREE.Vector3(580, 0, -280),
+            new THREE.Vector3(500, -4, -80),
+            new THREE.Vector3(640, 10, 130),
+            new THREE.Vector3(610, 16, 360),
+            new THREE.Vector3(410, 8, 490),
+            new THREE.Vector3(190, 2, 430),
+            new THREE.Vector3(40, 0, 260)
+        ];
+
+        const trackCurve = new THREE.CatmullRomCurve3(trackPoints, true, 'catmullrom', 0.5);
+        const TRACK_LENGTH = trackCurve.getLength();
+        const ROAD_WIDTH = 22;
+        const SEGMENTS = 700;
+
+        // Pre-muestreo de puntos, tangentes y normales del circuito para física ultra rápida
+        const trackSamples = [];
+        for (let i = 0; i <= SEGMENTS; i++) {
+            const u = i / SEGMENTS;
+            const pt = trackCurve.getPointAt(u);
+            const tan = trackCurve.getTangentAt(u).normalize();
+            const right = new THREE.Vector3().crossVectors(tan, new THREE.Vector3(0, 1, 0)).normalize();
+            trackSamples.push({ u, pt, tan, right });
+        }
+
+        // Generar malla 3D de la carretera y guardarraíles
+        function buildTrackMesh() {
+            const roadPositions = [];
+            const roadUVs = [];
+            const roadIndices = [];
+
+            const railLeftPts = [];
+            const railRightPts = [];
+
+            for (let i = 0; i <= SEGMENTS; i++) {
+                const { pt, right } = trackSamples[i];
+                const leftEdge = pt.clone().addScaledVector(right, -ROAD_WIDTH / 2);
+                const rightEdge = pt.clone().addScaledVector(right, ROAD_WIDTH / 2);
+
+                roadPositions.push(leftEdge.x, leftEdge.y + 0.05, leftEdge.z);
+                roadPositions.push(rightEdge.x, rightEdge.y + 0.05, rightEdge.z);
+
+                const vCoord = (i / SEGMENTS) * (TRACK_LENGTH / 16);
+                roadUVs.push(0, vCoord);
+                roadUVs.push(1, vCoord);
+
+                if (i < SEGMENTS) {
+                    const base = i * 2;
+                    roadIndices.push(base, base + 1, base + 2);
+                    roadIndices.push(base + 1, base + 3, base + 2);
+                }
+
+                // Puntos para barreras laterales
+                railLeftPts.push(pt.clone().addScaledVector(right, -(ROAD_WIDTH / 2 + 1.2)).add(new THREE.Vector3(0, 0.7, 0)));
+                railRightPts.push(pt.clone().addScaledVector(right, (ROAD_WIDTH / 2 + 1.2)).add(new THREE.Vector3(0, 0.7, 0)));
+            }
+
+            const roadGeo = new THREE.BufferGeometry();
+            roadGeo.setAttribute('position', new THREE.Float32BufferAttribute(roadPositions, 3));
+            roadGeo.setAttribute('uv', new THREE.Float32BufferAttribute(roadUVs, 2));
+            roadGeo.setIndex(roadIndices);
+            roadGeo.computeVertexNormals();
+
+            const roadMat = new THREE.MeshStandardMaterial({
+                map: createRoadTexture(),
+                roughness: 0.75,
+                metalness: 0.08
+            });
+
+            const roadMesh = new THREE.Mesh(roadGeo, roadMat);
+            roadMesh.receiveShadow = true;
+            scene.add(roadMesh);
+
+            // Guardarraíles metálicos a ambos lados
+            const railMat = new THREE.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.65, roughness: 0.35 });
+            const leftCurve = new THREE.CatmullRomCurve3(railLeftPts, true);
+            const rightCurve = new THREE.CatmullRomCurve3(railRightPts, true);
+
+            const leftRail = new THREE.Mesh(new THREE.TubeGeometry(leftCurve, 350, 0.35, 6, true), railMat);
+            const rightRail = new THREE.Mesh(new THREE.TubeGeometry(rightCurve, 350, 0.35, 6, true), railMat);
+            leftRail.castShadow = true;
+            rightRail.castShadow = true;
+            scene.add(leftRail, rightRail);
+        }
+
+        // Decoración del entorno: Nevado Sajama de fondo, vallas INTFOSIN-KM y pórtico de meta
+        function buildEnvironment() {
+            // 1. Pórtico de Salida / Meta INTFOSIN - KM
+            const startSample = trackSamples[0];
+            const archGroup = new THREE.Group();
+            archGroup.position.copy(startSample.pt);
+            const angle = Math.atan2(startSample.tan.x, startSample.tan.z);
+            archGroup.rotation.y = angle;
+
+            const pillarGeo = new THREE.BoxGeometry(1.4, 9.5, 1.4);
+            const pillarMat = new THREE.MeshStandardMaterial({ color: 0xb91c1c, metalness: 0.4, roughness: 0.4 });
+            const leftPillar = new THREE.Mesh(pillarGeo, pillarMat);
+            leftPillar.position.set(-ROAD_WIDTH / 2 - 1.2, 4.75, 0);
+            const rightPillar = new THREE.Mesh(pillarGeo, pillarMat);
+            rightPillar.position.set(ROAD_WIDTH / 2 + 1.2, 4.75, 0);
+
+            const bannerGeo = new THREE.BoxGeometry(ROAD_WIDTH + 4, 3.2, 1.2);
+            const bannerMat = new THREE.MeshStandardMaterial({ map: createStartArchTexture() });
+            const banner = new THREE.Mesh(bannerGeo, bannerMat);
+            banner.position.set(0, 8.2, 0);
+
+            // Línea de meta a cuadros en el suelo
+            const finishLineGeo = new THREE.PlaneGeometry(ROAD_WIDTH, 3);
+            const finishLineMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const finishLine = new THREE.Mesh(finishLineGeo, finishLineMat);
+            finishLine.rotation.x = -Math.PI / 2;
+            finishLine.position.y = 0.08;
+
+            archGroup.add(leftPillar, rightPillar, banner, finishLine);
+            scene.add(archGroup);
+
+            // 2. Vallas publicitarias INTFOSIN - KM alrededor de la pista
+            const bbTex1 = createBillboardTexture(0);
+            const bbTex2 = createBillboardTexture(1);
+            const bbGeo = new THREE.BoxGeometry(11, 4.2, 0.5);
+            const postGeo = new THREE.CylinderGeometry(0.2, 0.2, 5.5);
+            const postMat = new THREE.MeshStandardMaterial({ color: 0x334155 });
+
+            for (let i = 25; i < SEGMENTS; i += 48) {
+                const { pt, tan, right } = trackSamples[i];
+                const side = (i % 96 === 25) ? 1 : -1;
+                const bbGroup = new THREE.Group();
+
+                const pos = pt.clone().addScaledVector(right, side * (ROAD_WIDTH / 2 + 5.5));
+                bbGroup.position.copy(pos);
+                bbGroup.lookAt(pt.clone().addScaledVector(tan, 15));
+
+                const board = new THREE.Mesh(bbGeo, new THREE.MeshStandardMaterial({
+                    map: (i % 96 === 25) ? bbTex1 : bbTex2
+                }));
+                board.position.y = 3.2;
+                board.castShadow = true;
+
+                const p1 = new THREE.Mesh(postGeo, postMat);
+                p1.position.set(-4, 2.5, 0);
+                const p2 = new THREE.Mesh(postGeo, postMat);
+                p2.position.set(4, 2.5, 0);
+
+                bbGroup.add(board, p1, p2);
+                scene.add(bbGroup);
+            }
+
+            // 3. Montañas de los Andes / Nevado Sajama en el horizonte
+            const mountainMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.95 });
+            const snowMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.5 });
+
+            const mountainCoords = [
+                { x: -350, z: -850, r: 240, h: 260 },
+                { x: 320, z: -920, r: 290, h: 320 }, // Pico principal estilo Sajama
+                { x: 980, z: -420, r: 250, h: 240 },
+                { x: 950, z: 480, r: 260, h: 250 },
+                { x: -320, z: 780, r: 270, h: 270 },
+                { x: -680, z: 50, r: 230, h: 220 }
+            ];
+
+            mountainCoords.forEach(m => {
+                const mGroup = new THREE.Group();
+                const base = new THREE.Mesh(new THREE.ConeGeometry(m.r, m.h, 7), mountainMat);
+                base.position.y = m.h / 2 - 5;
+
+                const snowCap = new THREE.Mesh(new THREE.ConeGeometry(m.r * 0.36, m.h * 0.36, 7), snowMat);
+                snowCap.position.y = m.h - (m.h * 0.18) - 4.5;
+
+                mGroup.add(base, snowCap);
+                mGroup.position.set(m.x, 0, m.z);
+                scene.add(mGroup);
+            });
+        }
+
+        buildTrackMesh();
+        buildEnvironment();
+
+        // -------------------- 5. CONSTRUCCIÓN DE VEHÍCULOS 3D Y PILOTO BOLIVIANO --------------------
+        const sharedWiphalaTex = createWiphalaTexture();
+        const sharedAguayoTex = createAguayoTexture();
+        const sharedPlateTex = createPlateTexture();
+        const sharedEmblemTex = createEmblemTexture();
+
+        // Construye el personaje del piloto boliviano (casco Wiphala, visera transparente, rostro, aguayo y brazos al volante)
+        function createBolivianDriverMesh() {
+            const driverGroup = new THREE.Group();
+
+            // 1. Torso con traje rojo guindo/amarillo y poncho/aguayo andino multicolor en los hombros
+            const suitMat = new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.5 });
+            const aguayoMat = new THREE.MeshStandardMaterial({ map: sharedAguayoTex, roughness: 0.75 });
+
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(0.56, 0.48, 0.32), suitMat);
+            torso.position.set(0, 0.86, 0.05);
+            driverGroup.add(torso);
+
+            // Poncho / Chalina de Aguayo sobre los hombros y pecho
+            const ponchoShoulders = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.38, 0.28, 12), aguayoMat);
+            ponchoShoulders.scale.set(1.25, 1, 0.85);
+            ponchoShoulders.position.set(0, 1.02, 0.04);
+            driverGroup.add(ponchoShoulders);
+
+            // Bufanda/Chalina de aguayo alrededor del cuello
+            const scarf = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.055, 8, 16), aguayoMat);
+            scarf.rotation.x = Math.PI / 2 + 0.15;
+            scarf.position.set(0, 1.13, 0.02);
+            driverGroup.add(scarf);
+
+            // 2. Cabeza y rostro del piloto boliviano
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0xc68642, roughness: 0.55 });
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.165, 16, 16), skinMat);
+            head.position.set(0, 1.28, 0.01);
+            driverGroup.add(head);
+
+            // Ojos y cejas expresivas mirando hacia la pista (-Z)
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0x1e1b18 });
+            const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.022, 8, 8), eyeMat);
+            eyeL.position.set(-0.055, 1.29, -0.145);
+            const eyeR = eyeL.clone();
+            eyeR.position.x = 0.055;
+            driverGroup.add(eyeL, eyeR);
+
+            // 3. Casco de carreras con patrón ajedrezado Wiphala
+            const helmetMat = new THREE.MeshStandardMaterial({
+                map: sharedWiphalaTex,
+                roughness: 0.25,
+                metalness: 0.2
+            });
+            // Casco abierto al frente (phiStart y phiLength dejan abertura facial para ver el rostro)
+            const helmetShell = new THREE.Mesh(
+                new THREE.SphereGeometry(0.205, 20, 20, Math.PI * 0.22, Math.PI * 1.56, 0, Math.PI * 0.82),
+                helmetMat
+            );
+            helmetShell.rotation.y = Math.PI / 2; // Orientar abertura hacia -Z (frente del auto)
+            helmetShell.position.set(0, 1.29, 0.02);
+            helmetShell.castShadow = true;
+            driverGroup.add(helmetShell);
+
+            // Visera superior del casco
+            const peak = new THREE.Mesh(new THREE.BoxGeometry(0.26, 0.025, 0.14), helmetMat);
+            peak.rotation.x = 0.22;
+            peak.position.set(0, 1.41, -0.15);
+            driverGroup.add(peak);
+
+            // Visera transparente protectora frente al rostro
+            const visorMat = new THREE.MeshPhysicalMaterial({
+                color: 0xe0f2fe,
+                transparent: true,
+                opacity: 0.35,
+                roughness: 0.1,
+                metalness: 0.1
+            });
+            const visor = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.208, 0.208, 0.13, 16, 1, true, Math.PI * 0.72, Math.PI * 0.56),
+                visorMat
+            );
+            visor.position.set(0, 1.29, 0.01);
+            driverGroup.add(visor);
+
+            // 4. Brazos y guantes sujetando el volante
+            const gloveMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.6 });
+            const armGeo = new THREE.CylinderGeometry(0.05, 0.045, 0.38, 8);
+            armGeo.rotateX(Math.PI / 2 - 0.35);
+
+            const armL = new THREE.Mesh(armGeo, suitMat);
+            armL.position.set(-0.22, 0.98, -0.2);
+            const armR = new THREE.Mesh(armGeo, suitMat);
+            armR.position.set(0.22, 0.98, -0.2);
+
+            const handL = new THREE.Mesh(new THREE.SphereGeometry(0.055, 8, 8), gloveMat);
+            handL.position.set(-0.17, 0.93, -0.38);
+            const handR = handL.clone();
+            handR.position.x = 0.17;
+
+            driverGroup.add(armL, armR, handL, handR);
+
+            // 5. Volante deportivo con marca central amarilla (animado al girar)
+            const steeringGroup = new THREE.Group();
+            steeringGroup.position.set(0, 0.92, -0.42);
+            steeringGroup.rotation.x = -0.35;
+
+            const wheelRim = new THREE.Mesh(
+                new THREE.TorusGeometry(0.16, 0.024, 8, 20),
+                new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.5 })
+            );
+            const wheelMarker = new THREE.Mesh(
+                new THREE.BoxGeometry(0.03, 0.055, 0.055),
+                new THREE.MeshBasicMaterial({ color: 0xfacc15 })
+            );
+            wheelMarker.position.set(0, 0.16, 0);
+            const wheelSpoke = new THREE.Mesh(
+                new THREE.BoxGeometry(0.28, 0.03, 0.02),
+                new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.7 })
+            );
+            steeringGroup.add(wheelRim, wheelMarker, wheelSpoke);
+            driverGroup.add(steeringGroup);
+
+            return { group: driverGroup, head, steeringWheel: steeringGroup };
+        }
+
+        function createCarMesh(options = {}) {
+            const {
+                primaryColor = 0x88131b,
+                secondaryColor = 0xfacc15,
+                isInstitutional = false
+            } = options;
+
+            const carRoot = new THREE.Group();
+            const chassis = new THREE.Group(); // Grupo que inclina (cabeceo/balanceo)
+            carRoot.add(chassis);
+
+            const bodyMat = new THREE.MeshStandardMaterial({
+                color: primaryColor,
+                metalness: 0.55,
+                roughness: 0.25
+            });
+
+            const accentMat = new THREE.MeshStandardMaterial({
+                color: secondaryColor,
+                metalness: 0.45,
+                roughness: 0.3
+            });
+
+            const carbonMat = new THREE.MeshStandardMaterial({
+                color: 0x111827,
+                metalness: 0.3,
+                roughness: 0.6
+            });
+
+            // Cristal transparente realista para poder ver claramente al piloto boliviano dentro
+            const glassMat = new THREE.MeshPhysicalMaterial({
+                color: 0xbae6fd,
+                transparent: true,
+                opacity: 0.32,
+                roughness: 0.08,
+                metalness: 0.1,
+                side: THREE.DoubleSide
+            });
+
+            // Carrocería principal (Parte inferior aerodinámica)
+            const lowerBody = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.58, 4.5), bodyMat);
+            lowerBody.position.y = 0.58;
+            lowerBody.castShadow = true;
+            chassis.add(lowerBody);
+
+            // Capó delantero inclinado y franja amarilla central característica
+            const hoodStripe = new THREE.Mesh(new THREE.BoxGeometry(0.78, 0.6, 4.52), accentMat);
+            hoodStripe.position.y = 0.585;
+            chassis.add(hoodStripe);
+
+            // Detalles institucionales y piloto boliviano en el auto KM-01 Khana Marka GT
+            let driverRig = null;
+            if (isInstitutional) {
+                // Franja Wiphala en el capó delantero
+                const wColors = [0xe11d48, 0xf97316, 0xeab308, 0xffffff, 0x16a34a, 0x2563eb, 0x7e22ce];
+                wColors.forEach((col, i) => {
+                    const strip = new THREE.Mesh(
+                        new THREE.BoxGeometry(0.14, 0.03, 1.25),
+                        new THREE.MeshBasicMaterial({ color: col })
+                    );
+                    strip.position.set(-0.42 + i * 0.14, 0.89, -1.4);
+                    chassis.add(strip);
+                });
+
+                // Emblemas circulares INTFOSIN - KM en puertas laterales y parte trasera
+                const emblemMat = new THREE.MeshBasicMaterial({ map: sharedEmblemTex, transparent: true });
+                const emblemL = new THREE.Mesh(new THREE.PlaneGeometry(0.56, 0.56), emblemMat);
+                emblemL.rotation.y = -Math.PI / 2;
+                emblemL.position.set(-1.06, 0.6, -0.2);
+
+                const emblemR = new THREE.Mesh(new THREE.PlaneGeometry(0.56, 0.56), emblemMat);
+                emblemR.rotation.y = Math.PI / 2;
+                emblemR.position.set(1.06, 0.6, -0.2);
+
+                const emblemRear = new THREE.Mesh(new THREE.PlaneGeometry(0.38, 0.38), emblemMat);
+                emblemRear.position.set(0, 0.72, 2.265);
+
+                // Placa trasera "BOLIVIA ORURO"
+                const plateMesh = new THREE.Mesh(
+                    new THREE.PlaneGeometry(0.56, 0.26),
+                    new THREE.MeshBasicMaterial({ map: sharedPlateTex })
+                );
+                plateMesh.position.set(0, 0.42, 2.265);
+
+                chassis.add(emblemL, emblemR, emblemRear, plateMesh);
+
+                // Habitáculo interior (Asiento tipo cubo + tablero) y Piloto Boliviano
+                const seatBack = new THREE.Mesh(new THREE.BoxGeometry(0.58, 0.65, 0.12), carbonMat);
+                seatBack.rotation.x = -0.18;
+                seatBack.position.set(0, 1.0, 0.28);
+                const dashboard = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.25, 0.45), carbonMat);
+                dashboard.position.set(0, 0.86, -0.68);
+                chassis.add(seatBack, dashboard);
+
+                driverRig = createBolivianDriverMesh();
+                driverRig.group.position.set(0, 0.04, -0.05);
+                chassis.add(driverRig.group);
+            }
+
+            // Estructura de cabina con pilares oscuros y cristales transparentes
+            const cabinGlass = new THREE.Mesh(new THREE.BoxGeometry(1.64, 0.54, 1.95), glassMat);
+            cabinGlass.position.set(0, 1.12, -0.1);
+            chassis.add(cabinGlass);
+
+            // Pilares estructurales de la cabina (A y B) para dar realismo sin tapar al piloto
+            const pillarPositions = [
+                [-0.8, 1.12, -1.04],
+                [0.8, 1.12, -1.04],
+                [-0.8, 1.12, 0.84],
+                [0.8, 1.12, 0.84]
+            ];
+            pillarPositions.forEach(pPos => {
+                const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.55, 0.07), carbonMat);
+                pillar.position.set(...pPos);
+                chassis.add(pillar);
+            });
+
+            // Techo pintado (ligeramente retrasado para dejar ver el casco Wiphala desde atrás y arriba)
+            const roof = new THREE.Mesh(new THREE.BoxGeometry(1.62, 0.08, 1.15), bodyMat);
+            roof.position.set(0, 1.4, 0.05);
+            roof.castShadow = true;
+            chassis.add(roof);
+
+            // Splitter delantero de fibra de carbono
+            const splitter = new THREE.Mesh(new THREE.BoxGeometry(2.16, 0.12, 0.5), carbonMat);
+            splitter.position.set(0, 0.32, -2.15);
+            chassis.add(splitter);
+
+            // Alerón trasero GT negro (estilo imagen de referencia)
+            const wingBlade = new THREE.Mesh(new THREE.BoxGeometry(2.22, 0.11, 0.44), carbonMat);
+            wingBlade.position.set(0, 1.24, 2.02);
+            const wingEndL = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.24, 0.48), carbonMat);
+            wingEndL.position.set(-1.11, 1.24, 2.02);
+            const wingEndR = wingEndL.clone();
+            wingEndR.position.x = 1.11;
+            const wingStrutL = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.42, 0.25), carbonMat);
+            wingStrutL.position.set(-0.65, 1.04, 2.02);
+            const wingStrutR = wingStrutL.clone();
+            wingStrutR.position.x = 0.65;
+            chassis.add(wingBlade, wingEndL, wingEndR, wingStrutL, wingStrutR);
+
+            // Faros delanteros LED
+            const headLightMat = new THREE.MeshBasicMaterial({ color: 0xfef08a });
+            const hlLeft = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.14, 0.1), headLightMat);
+            hlLeft.position.set(-0.72, 0.64, -2.24);
+            const hlRight = hlLeft.clone();
+            hlRight.position.x = 0.72;
+            chassis.add(hlLeft, hlRight);
+
+            // Luces de freno traseras (intensidad dinámica)
+            const brakeLightMat = new THREE.MeshBasicMaterial({ color: 0x7f1d1d });
+            const blLeft = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.16, 0.1), brakeLightMat);
+            blLeft.position.set(-0.68, 0.68, 2.24);
+            const blRight = blLeft.clone();
+            blRight.position.x = 0.68;
+            chassis.add(blLeft, blRight);
+
+            // Llamas de escape (Turbo Nitro)
+            const flameMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0 });
+            const flameL = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.85, 8), flameMat);
+            flameL.rotation.x = Math.PI / 2;
+            flameL.position.set(-0.48, 0.36, 2.65);
+            const flameR = flameL.clone();
+            flameR.position.x = 0.48;
+            chassis.add(flameL, flameR);
+
+            // 4 Ruedas con llantas deportivas
+            const wheels = [];
+            const wheelGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.34, 18);
+            wheelGeo.rotateZ(Math.PI / 2);
+            const tireMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.85 });
+            const rimMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.8, roughness: 0.2 });
+
+            const wheelPositions = [
+                [-1.06, 0.42, -1.38], // Delantera Izquierda
+                [1.06, 0.42, -1.38],  // Delantera Derecha
+                [-1.06, 0.42, 1.38],  // Trasera Izquierda
+                [1.06, 0.42, 1.38]    // Trasera Derecha
+            ];
+
+            wheelPositions.forEach(pos => {
+                const wGroup = new THREE.Group();
+                const tire = new THREE.Mesh(wheelGeo, tireMat);
+                const rim = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.26, 0.36, 10).rotateZ(Math.PI / 2), rimMat);
+                wGroup.add(tire, rim);
+                wGroup.position.set(...pos);
+                carRoot.add(wGroup);
+                wheels.push(wGroup);
+            });
+
+            return {
+                root: carRoot,
+                chassis,
+                wheels,
+                brakeLightMat,
+                flameMat,
+                driverRig
+            };
+        }
+
+        // -------------------- 6. SISTEMA DE PARTÍCULAS (HUMO DE NEUMÁTICOS) --------------------
+        const particles = [];
+        const particleGeo = new THREE.SphereGeometry(0.28, 6, 6);
+        const particleMat = new THREE.MeshBasicMaterial({
+            color: 0xe2e8f0,
+            transparent: true,
+            opacity: 0.45
+        });
+
+        function spawnTireSmoke(pos) {
+            if (particles.length > 90) return;
+            const mesh = new THREE.Mesh(particleGeo, particleMat.clone());
+            mesh.position.copy(pos);
+            mesh.position.y += 0.15;
+            scene.add(mesh);
+            particles.push({
+                mesh,
+                life: 1.0,
+                vel: new THREE.Vector3((Math.random() - 0.5) * 1.5, 0.8 + Math.random(), (Math.random() - 0.5) * 1.5)
+            });
+        }
+
+        function updateParticles(dt) {
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.life -= dt * 2.2;
+                if (p.life <= 0) {
+                    scene.remove(p.mesh);
+                    particles.splice(i, 1);
+                } else {
+                    p.mesh.position.addScaledVector(p.vel, dt);
+                    p.mesh.scale.addScalar(dt * 2.5);
+                    p.mesh.material.opacity = p.life * 0.4;
+                }
+            }
+        }
+
+        // -------------------- 7. ESTADO DEL JUEGO Y FÍSICAS --------------------
+        const CAR_SPECS = [
+            { name: 'KM-01 KHANA MARKA GT', maxSpeed: 315, accel: 34, handling: 2.35, color: 0x88131b, accent: 0xfacc15, inst: true },
+            { name: 'SAJAMA V8 BITURBO', maxSpeed: 340, accel: 29, handling: 2.05, color: 0x059669, accent: 0xffffff, inst: true },
+            { name: 'ORURO APEX EVO', maxSpeed: 300, accel: 40, handling: 2.65, color: 0x0284c7, accent: 0xfacc15, inst: true }
+        ];
+
+        const DIFFICULTY_SETTINGS = {
+            easy: { laps: 2, aiSpeedMult: 0.78, traffic: 0 },
+            normal: { laps: 3, aiSpeedMult: 0.91, traffic: 3 },
+            hard: { laps: 3, aiSpeedMult: 1.02, traffic: 6 }
+        };
+
+        let selectedCarIndex = 0;
+        let selectedDifficulty = 'normal';
+
+        const gameState = {
+            status: 'menu', // menu, countdown, racing, paused, finished
+            cameraMode: 0,  // 0: Persecución dinámica, 1: Capó/Primera persona, 2: Lejana
+            startTime: 0,
+            elapsedTime: 0,
+            maxLaps: 3,
+            topSpeedReached: 0,
+            countdownValue: 3
+        };
+
+        // Objeto del jugador
+        const player = {
+            meshObj: null,
+            pos: new THREE.Vector3(),
+            heading: 0,
+            speed: 0,         // m/s
+            angularVel: 0,
+            gear: 1,
+            rpm: 1000,
+            nitro: 100,
+            lap: 1,
+            progressU: 0,
+            totalProgress: 0,
+            lastU: 0,
+            wrongWay: false
+        };
+
+        let aiCars = [];
+
+        // Controles de entrada (Teclado + Táctil)
+        const input = {
+            up: false,
+            down: false,
+            left: false,
+            right: false,
+            nitro: false,
+            handbrake: false
+        };
+
+        // Utilidad para proyectar cualquier posición 3D sobre el punto más cercano del circuito
+        function getClosestTrackInfo(position) {
+            let bestDistSq = Infinity;
+            let bestIndex = 0;
+            for (let i = 0; i < SEGMENTS; i++) {
+                const dSq = position.distanceToSquared(trackSamples[i].pt);
+                if (dSq < bestDistSq) {
+                    bestDistSq = dSq;
+                    bestIndex = i;
+                }
+            }
+            const sample = trackSamples[bestIndex];
+            const diff = new THREE.Vector3().subVectors(position, sample.pt);
+            const lateralOffset = diff.dot(sample.right);
+            return {
+                index: bestIndex,
+                u: sample.u,
+                pt: sample.pt,
+                tan: sample.tan,
+                right: sample.right,
+                lateralOffset
+            };
+        }
+
+        // Inicializar / Reiniciar vehículos en la parrilla de salida
+        function setupRace() {
+            // Limpiar vehículos previos
+            if (player.meshObj) scene.remove(player.meshObj.root);
+            aiCars.forEach(ai => scene.remove(ai.meshObj.root));
+            aiCars = [];
+
+            const spec = CAR_SPECS[selectedCarIndex];
+            const diffCfg = DIFFICULTY_SETTINGS[selectedDifficulty];
+            gameState.maxLaps = diffCfg.laps;
+            gameState.topSpeedReached = 0;
+            gameState.elapsedTime = 0;
+
+            document.getElementById('hud-max-laps').textContent = gameState.maxLaps;
+
+            // Crear auto del jugador en la posición 6 de la parrilla
+            player.meshObj = createCarMesh({
+                primaryColor: spec.color,
+                secondaryColor: spec.accent,
+                isInstitutional: spec.inst
+            });
+            scene.add(player.meshObj.root);
+
+            const startU = 0.982;
+            const startPt = trackCurve.getPointAt(startU);
+            const startTan = trackCurve.getTangentAt(startU).normalize();
+            const startRight = new THREE.Vector3().crossVectors(startTan, new THREE.Vector3(0, 1, 0)).normalize();
+
+            player.pos.copy(startPt).addScaledVector(startRight, -3.5);
+            player.heading = Math.atan2(-startTan.x, -startTan.z);
+            player.speed = 0;
+            player.angularVel = 0;
+            player.gear = 1;
+            player.rpm = 1200;
+            player.nitro = 100;
+            player.lap = 1;
+            player.progressU = startU;
+            player.lastU = startU;
+            player.totalProgress = -0.018;
+            player.meshObj.root.position.copy(player.pos);
+            player.meshObj.root.rotation.y = player.heading;
+
+            // Crear 5 rivales competitivos
+            const rivalPalette = [
+                { color: 0xeab308, accent: 0x0f172a },
+                { color: 0x16a34a, accent: 0xffffff },
+                { color: 0x9333ea, accent: 0xfacc15 },
+                { color: 0xf97316, accent: 0x1e293b },
+                { color: 0xe11d48, accent: 0xffffff }
+            ];
+
+            for (let i = 0; i < 5; i++) {
+                const gridU = (0.986 + i * 0.0025) % 1;
+                const gPt = trackCurve.getPointAt(gridU);
+                const gTan = trackCurve.getTangentAt(gridU).normalize();
+                const gRight = new THREE.Vector3().crossVectors(gTan, new THREE.Vector3(0, 1, 0)).normalize();
+                const lane = (i % 2 === 0) ? 3.5 : -3.5;
+
+                const meshObj = createCarMesh({
+                    primaryColor: rivalPalette[i].color,
+                    secondaryColor: rivalPalette[i].accent,
+                    isInstitutional: false
+                });
+                scene.add(meshObj.root);
+
+                const aiPos = gPt.clone().addScaledVector(gRight, lane);
+                meshObj.root.position.copy(aiPos);
+                meshObj.root.rotation.y = Math.atan2(-gTan.x, -gTan.z);
+
+                aiCars.push({
+                    meshObj,
+                    u: gridU,
+                    laneOffset: lane,
+                    targetLane: lane,
+                    speed: 0,
+                    maxSpeed: (72 + i * 3.5) * diffCfg.aiSpeedMult,
+                    totalProgress: gridU - 1,
+                    isTraffic: false
+                });
+            }
+
+            // Añadir vehículos de tráfico civil si la dificultad lo indica
+            for (let t = 0; t < diffCfg.traffic; t++) {
+                const tU = (0.15 + t * (0.75 / diffCfg.traffic)) % 1;
+                const tPt = trackCurve.getPointAt(tU);
+                const meshObj = createCarMesh({
+                    primaryColor: 0x64748b,
+                    secondaryColor: 0xcbd5e1,
+                    isInstitutional: false
+                });
+                scene.add(meshObj.root);
+                aiCars.push({
+                    meshObj,
+                    u: tU,
+                    laneOffset: (t % 2 === 0) ? 5.2 : -5.2,
+                    targetLane: (t % 2 === 0) ? 5.2 : -5.2,
+                    speed: 34,
+                    maxSpeed: 34,
+                    totalProgress: -999, // No compite por posición
+                    isTraffic: true
+                });
+            }
+
+            // Iniciar secuencia de semáforo 3 - 2 - 1 - ¡YA!
+            startCountdown();
+        }
+
+        function startCountdown() {
+            gameState.status = 'countdown';
+            const cdEl = document.getElementById('countdown-display');
+            cdEl.classList.remove('hidden');
+            let count = 3;
+            cdEl.textContent = count;
+            cdEl.style.color = '#ef4444';
+            audio.playBeep(440, 0.18);
+
+            const timer = setInterval(() => {
+                if (gameState.status === 'menu') {
+                    clearInterval(timer);
+                    return;
+                }
+                count--;
+                if (count > 0) {
+                    cdEl.textContent = count;
+                    cdEl.style.color = count === 2 ? '#f59e0b' : '#facc15';
+                    audio.playBeep(440, 0.18);
+                } else if (count === 0) {
+                    cdEl.textContent = '¡YA!';
+                    cdEl.style.color = '#10b981';
+                    audio.playBeep(880, 0.35);
+                    gameState.status = 'racing';
+                    gameState.startTime = performance.now();
+                } else {
+                    cdEl.classList.add('hidden');
+                    clearInterval(timer);
+                }
+            }, 850);
+        }
+
+        // Actualización de física del jugador
+        function updatePlayerPhysics(dt) {
+            const spec = CAR_SPECS[selectedCarIndex];
+            const maxSpeedMS = spec.maxSpeed / 3.6; // Conversión km/h a m/s
+
+            // Gestión del Nitro
+            const usingNitro = input.nitro && player.nitro > 1 && input.up && gameState.status === 'racing';
+            if (usingNitro) {
+                player.nitro = Math.max(0, player.nitro - dt * 26);
+                document.getElementById('speed-lines').style.opacity = '1';
+                player.meshObj.flameMat.opacity = 0.85 + Math.random() * 0.15;
+            } else {
+                player.nitro = Math.min(100, player.nitro + dt * 6.5);
+                document.getElementById('speed-lines').style.opacity = '0';
+                player.meshObj.flameMat.opacity = 0;
+            }
+
+            const currentMaxSpeed = usingNitro ? maxSpeedMS * 1.18 : maxSpeedMS;
+
+            // Aceleración y Frenado
+            if (gameState.status === 'racing') {
+                if (input.up) {
+                    const boost = usingNitro ? 1.45 : 1.0;
+                    // Curva de par realista: acelera más rápido en marchas bajas
+                    const torqueFactor = 1.15 - (player.speed / currentMaxSpeed) * 0.45;
+                    player.speed += spec.accel * boost * torqueFactor * dt;
+                } else if (input.down) {
+                    if (player.speed > 1) {
+                        player.speed -= 58 * dt; // Frenada potente
+                    } else {
+                        player.speed -= 22 * dt; // Marcha atrás
+                    }
+                } else {
+                    // Resistencia aerodinámica y fricción de rodadura
+                    player.speed *= Math.pow(0.55, dt);
+                }
+
+                if (input.handbrake) {
+                    player.speed *= Math.pow(0.25, dt);
+                }
+            } else {
+                player.speed = 0;
+            }
+
+            // Limitar velocidad máxima y reversa
+            player.speed = Math.max(-18, Math.min(currentMaxSpeed, player.speed));
+
+            // Dirección con sensibilidad progresiva según velocidad
+            const speedFactor = Math.min(1, Math.abs(player.speed) / 14);
+            const turnInput = (input.left ? 1 : 0) - (input.right ? 1 : 0);
+            const driftBonus = input.handbrake ? 1.32 : 1.0;
+            const reverseSign = player.speed >= -0.1 ? 1 : -1;
+
+            const targetAngVel = turnInput * spec.handling * speedFactor * driftBonus * reverseSign;
+            player.angularVel += (targetAngVel - player.angularVel) * Math.min(1, dt * 10);
+            player.heading += player.angularVel * dt;
+
+            // Vector de desplazamiento hacia adelante (-Z en espacio local del auto)
+            const forward = new THREE.Vector3(-Math.sin(player.heading), 0, -Math.cos(player.heading));
+            player.pos.addScaledVector(forward, player.speed * dt);
+
+            // Detección de posición sobre el circuito y altura (colinas)
+            const trackInfo = getClosestTrackInfo(player.pos);
+            // Suavizar la altura Y para subir/bajar colinas sin saltos bruscos
+            player.pos.y += (trackInfo.pt.y - player.pos.y) * Math.min(1, dt * 18);
+
+            // Colisión con guardarraíles laterales
+            const maxLateral = ROAD_WIDTH / 2 - 1.1;
+            if (Math.abs(trackInfo.lateralOffset) > maxLateral) {
+                const sign = Math.sign(trackInfo.lateralOffset);
+                player.pos.copy(trackInfo.pt).addScaledVector(trackInfo.right, sign * maxLateral);
+                player.speed *= 0.86; // Pérdida de velocidad por roce
+                if (Math.abs(player.speed) > 25) {
+                    spawnTireSmoke(player.pos);
+                }
+            }
+
+            // Detectar sentido contrario
+            const dotDir = forward.dot(trackInfo.tan);
+            player.wrongWay = dotDir < -0.35 && player.speed > 8;
+            document.getElementById('wrong-way-alert').classList.toggle('hidden', !player.wrongWay);
+
+            // Cálculo de progreso de vuelta
+            let deltaU = trackInfo.u - player.lastU;
+            if (deltaU < -0.5) {
+                deltaU += 1.0; // Cruzó la meta hacia adelante
+                if (player.totalProgress > 0.5) {
+                    player.lap++;
+                    audio.playBeep(660, 0.2);
+                    if (player.lap > gameState.maxLaps && gameState.status === 'racing') {
+                        finishRace();
+                    }
+                }
+            } else if (deltaU > 0.5) {
+                deltaU -= 1.0; // Cruzó la meta en reversa
+            }
+            player.totalProgress += deltaU;
+            player.lastU = trackInfo.u;
+            player.progressU = trackInfo.u;
+
+            // Caja de cambios automática de 6 velocidades y cálculo de RPM
+            const kmh = Math.abs(player.speed) * 3.6;
+            if (kmh > gameState.topSpeedReached) gameState.topSpeedReached = kmh;
+
+            if (player.speed < -0.5) {
+                player.gear = 'R';
+                player.rpm = 2000 + (kmh / 65) * 5500;
+            } else if (kmh < 3) {
+                player.gear = 'N';
+                player.rpm = 1100 + (input.up ? 2500 : 0);
+            } else {
+                const gearThresholds = [0, 58, 112, 168, 224, 278, 360];
+                let g = 1;
+                for (let i = 1; i <= 6; i++) {
+                    if (kmh >= gearThresholds[i - 1]) g = i;
+                }
+                player.gear = g;
+                const low = gearThresholds[g - 1];
+                const high = gearThresholds[g];
+                const ratio = Math.min(1, Math.max(0, (kmh - low) / (high - low)));
+                player.rpm = 2400 + ratio * 6100;
+            }
+
+            // Efectos visuales en el modelo 3D del jugador
+            player.meshObj.root.position.copy(player.pos);
+            player.meshObj.root.rotation.y = player.heading;
+
+            // Inclinación de carrocería (Body roll en curvas y cabeceo al acelerar/frenar)
+            const targetRoll = -player.angularVel * 0.055;
+            const targetPitch = (input.down ? -0.025 : (input.up ? 0.018 : 0));
+            player.meshObj.chassis.rotation.z += (targetRoll - player.meshObj.chassis.rotation.z) * Math.min(1, dt * 10);
+            player.meshObj.chassis.rotation.x += (targetPitch - player.meshObj.chassis.rotation.x) * Math.min(1, dt * 10);
+
+            // Giro de ruedas
+            player.meshObj.wheels.forEach((w, idx) => {
+                w.children[0].rotation.x -= player.speed * dt * 2.2;
+                if (idx < 2) {
+                    w.rotation.y = turnInput * 0.32;
+                }
+            });
+
+            // Animación del piloto boliviano (giro de volante y leve inclinación de cabeza en curva)
+            if (player.meshObj.driverRig) {
+                player.meshObj.driverRig.steeringWheel.rotation.z = turnInput * 0.65;
+                player.meshObj.driverRig.head.rotation.y = turnInput * 0.25;
+                player.meshObj.driverRig.head.rotation.z = -turnInput * 0.1;
+            }
+
+            // Luces de freno
+            player.meshObj.brakeLightMat.color.setHex(input.down || input.handbrake ? 0xff1e1e : 0x691111);
+
+            // Humo de neumáticos en derrapes o curvas cerradas a alta velocidad
+            const isSkidding = (input.handbrake && kmh > 35) || (Math.abs(player.angularVel) > 1.45 && kmh > 95);
+            if (isSkidding) {
+                const rearLeft = new THREE.Vector3(-0.9, 0, 1.4).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.heading).add(player.pos);
+                const rearRight = new THREE.Vector3(0.9, 0, 1.4).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.heading).add(player.pos);
+                spawnTireSmoke(rearLeft);
+                spawnTireSmoke(rearRight);
+            }
+
+            // Actualizar sonido sintetizado
+            audio.update(
+                Math.min(1, player.rpm / 8500),
+                input.up,
+                isSkidding,
+                usingNitro,
+                gameState.status !== 'racing'
+            );
+        }
+
+        // Actualización de IA de rivales y colisiones entre autos
+        function updateAICars(dt) {
+            aiCars.forEach(ai => {
+                if (gameState.status === 'racing') {
+                    ai.speed += (ai.maxSpeed - ai.speed) * Math.min(1, dt * 1.5);
+                } else {
+                    ai.speed = 0;
+                }
+
+                const du = (ai.speed * dt) / TRACK_LENGTH;
+                ai.u = (ai.u + du) % 1;
+                if (!ai.isTraffic) {
+                    ai.totalProgress += du;
+                }
+
+                // Cambio suave de carril para esquivar o defender posición
+                if (Math.random() < dt * 0.4 && !ai.isTraffic) {
+                    ai.targetLane = (Math.random() - 0.5) * (ROAD_WIDTH - 6);
+                }
+                ai.laneOffset += (ai.targetLane - ai.laneOffset) * Math.min(1, dt * 2);
+
+                const pt = trackCurve.getPointAt(ai.u);
+                const tan = trackCurve.getTangentAt(ai.u).normalize();
+                const right = new THREE.Vector3().crossVectors(tan, new THREE.Vector3(0, 1, 0)).normalize();
+
+                const worldPos = pt.clone().addScaledVector(right, ai.laneOffset);
+                ai.meshObj.root.position.copy(worldPos);
+                ai.meshObj.root.rotation.y = Math.atan2(-tan.x, -tan.z);
+
+                ai.meshObj.wheels.forEach(w => {
+                    w.children[0].rotation.x -= ai.speed * dt * 2.2;
+                });
+
+                // Colisión física elástica entre el jugador y el auto IA
+                const dist = player.pos.distanceTo(worldPos);
+                if (dist < 2.8) {
+                    const pushDir = new THREE.Vector3().subVectors(player.pos, worldPos).normalize();
+                    player.pos.addScaledVector(pushDir, 2.8 - dist);
+                    player.speed *= 0.82;
+                    ai.speed *= 0.75;
+                    audio.playCrash();
+                    spawnTireSmoke(worldPos);
+                }
+            });
+        }
+
+        // Actualización de Cámara 3D (3 modos seleccionables)
+        function updateCamera(dt) {
+            const forward = new THREE.Vector3(-Math.sin(player.heading), 0, -Math.cos(player.heading));
+            const speedRatio = Math.min(1, Math.abs(player.speed) / 90);
+
+            // FOV dinámico para sensación de velocidad extrema
+            const targetFOV = 64 + speedRatio * 18 + (input.nitro ? 7 : 0);
+            camera.fov += (targetFOV - camera.fov) * Math.min(1, dt * 6);
+            camera.updateProjectionMatrix();
+
+            let desiredPos = new THREE.Vector3();
+            let lookTarget = new THREE.Vector3();
+
+            if (gameState.cameraMode === 0) {
+                // Cámara persecución dinámica (permite ver el casco Wiphala y poncho del piloto a través de la luneta trasera)
+                desiredPos.copy(player.pos)
+                    .addScaledVector(forward, -6.2 - speedRatio * 1.1)
+                    .add(new THREE.Vector3(0, 2.55, 0));
+                lookTarget.copy(player.pos)
+                    .addScaledVector(forward, 12)
+                    .add(new THREE.Vector3(0, 1.15, 0));
+            } else if (gameState.cameraMode === 1) {
+                // Cámara de cabina / vista del piloto boliviano al volante
+                desiredPos.copy(player.pos)
+                    .addScaledVector(forward, -0.45)
+                    .add(new THREE.Vector3(0.28, 1.32, 0));
+                lookTarget.copy(player.pos)
+                    .addScaledVector(forward, 18)
+                    .add(new THREE.Vector3(0, 1.05, 0));
+            } else {
+                // Cámara aérea lejana
+                desiredPos.copy(player.pos)
+                    .addScaledVector(forward, -12.5)
+                    .add(new THREE.Vector3(0, 6.2, 0));
+                lookTarget.copy(player.pos).addScaledVector(forward, 10);
+            }
+
+            camera.position.lerp(desiredPos, gameState.cameraMode === 1 ? 0.95 : Math.min(1, dt * 14));
+            camera.lookAt(lookTarget);
+        }
+
+        // -------------------- 8. ACTUALIZACIÓN DE HUD Y MINIMAPA --------------------
+        const minimapCanvas = document.getElementById('minimap-canvas');
+        const mmCtx = minimapCanvas.getContext('2d');
+
+        function renderMinimap() {
+            mmCtx.clearRect(0, 0, 130, 130);
+
+            // Escalar coordenadas del circuito al minimapa (X: -100..700, Z: -600..550)
+            const mapX = x => ((x + 120) / 860) * 110 + 10;
+            const mapY = z => ((z + 620) / 1180) * 110 + 10;
+
+            // Trazado de la pista
+            mmCtx.beginPath();
+            for (let i = 0; i <= SEGMENTS; i += 5) {
+                const pt = trackSamples[i].pt;
+                const mx = mapX(pt.x);
+                const my = mapY(pt.z);
+                if (i === 0) mmCtx.moveTo(mx, my);
+                else mmCtx.lineTo(mx, my);
+            }
+            mmCtx.closePath();
+            mmCtx.strokeStyle = 'rgba(255, 255, 255, 0.45)';
+            mmCtx.lineWidth = 5;
+            mmCtx.stroke();
+
+            // Línea de meta
+            const startPt = trackSamples[0].pt;
+            mmCtx.fillStyle = '#facc15';
+            mmCtx.fillRect(mapX(startPt.x) - 4, mapY(startPt.z) - 2, 8, 4);
+
+            // Rivales
+            aiCars.forEach(ai => {
+                if (ai.isTraffic) return;
+                mmCtx.fillStyle = '#ef4444';
+                mmCtx.beginPath();
+                mmCtx.arc(mapX(ai.meshObj.root.position.x), mapY(ai.meshObj.root.position.z), 3, 0, Math.PI * 2);
+                mmCtx.fill();
+            });
+
+            // Jugador
+            mmCtx.fillStyle = '#10b981';
+            mmCtx.beginPath();
+            mmCtx.arc(mapX(player.pos.x), mapY(player.pos.z), 4.2, 0, Math.PI * 2);
+            mmCtx.fill();
+            mmCtx.strokeStyle = '#ffffff';
+            mmCtx.lineWidth = 1.5;
+            mmCtx.stroke();
+        }
+
+        function formatTime(ms) {
+            const totalSec = ms / 1000;
+            const mins = Math.floor(totalSec / 60);
+            const secs = Math.floor(totalSec % 60);
+            const hundredths = Math.floor((ms % 1000) / 10);
+            return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}.${String(hundredths).padStart(2, '0')}`;
+        }
+
+        function updateHUD() {
+            const kmh = Math.round(Math.abs(player.speed) * 3.6);
+            document.getElementById('hud-speed').textContent = kmh;
+            document.getElementById('hud-gear').textContent = player.gear;
+            document.getElementById('hud-lap').textContent = Math.min(player.lap, gameState.maxLaps);
+            document.getElementById('hud-nitro-bar').style.height = `${player.nitro}%`;
+
+            // Arco de RPM SVG (longitud total del arco visible = 235)
+            const rpmRatio = Math.min(1, Math.max(0, player.rpm / 8800));
+            document.getElementById('rpm-arc').setAttribute('stroke-dasharray', `${rpmRatio * 235} 314`);
+
+            // Calcular posición actual en carrera
+            let rank = 1;
+            aiCars.forEach(ai => {
+                if (!ai.isTraffic && ai.totalProgress > player.totalProgress) {
+                    rank++;
+                }
+            });
+            document.getElementById('hud-pos').textContent = rank;
+
+            // Barra de progreso total
+            const racePct = Math.min(100, Math.max(0, (player.totalProgress / gameState.maxLaps) * 100));
+            document.getElementById('hud-progress-bar').style.width = `${racePct}%`;
+
+            // Tiempo transcurrido
+            if (gameState.status === 'racing') {
+                gameState.elapsedTime = performance.now() - gameState.startTime;
+            }
+            document.getElementById('hud-time').textContent = formatTime(gameState.elapsedTime);
+
+            renderMinimap();
+        }
+
+        function finishRace() {
+            gameState.status = 'finished';
+            audio.update(0, false, false, false, true);
+
+            let rank = 1;
+            aiCars.forEach(ai => {
+                if (!ai.isTraffic && ai.totalProgress > player.totalProgress) rank++;
+            });
+
+            document.getElementById('finish-pos').textContent = `${rank}° Lugar`;
+            document.getElementById('finish-time').textContent = formatTime(gameState.elapsedTime);
+            document.getElementById('finish-top-speed').textContent = `${Math.round(gameState.topSpeedReached)} km/h`;
+
+            if (rank === 1) {
+                document.getElementById('finish-trophy').textContent = '🏆';
+                document.getElementById('finish-title').textContent = '¡CAMPEÓN KHANA MARKA!';
+            } else if (rank <= 3) {
+                document.getElementById('finish-trophy').textContent = '🥈';
+                document.getElementById('finish-title').textContent = '¡PODIO ALCANZADO!';
+            } else {
+                document.getElementById('finish-trophy').textContent = '🏁';
+                document.getElementById('finish-title').textContent = 'CARRERA COMPLETADA';
+            }
+
+            const modal = document.getElementById('finish-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        // -------------------- 9. EVENTOS DE INTERFAZ Y CONTROLES --------------------
+        // Selección de auto
+        document.querySelectorAll('.car-option').forEach(el => {
+            el.addEventListener('click', () => {
+                document.querySelectorAll('.car-option').forEach(c => {
+                    c.classList.remove('border-2', 'border-amber-400', 'bg-amber-500/15');
+                    c.classList.add('border', 'border-white/15', 'bg-white/5');
+                });
+                el.classList.remove('border', 'border-white/15', 'bg-white/5');
+                el.classList.add('border-2', 'border-amber-400', 'bg-amber-500/15');
+                selectedCarIndex = parseInt(el.dataset.car, 10);
+            });
+        });
+
+        // Selección de dificultad
+        document.querySelectorAll('.diff-option').forEach(el => {
+            el.addEventListener('click', () => {
+                document.querySelectorAll('.diff-option').forEach(d => {
+                    d.classList.remove('border-2', 'border-amber-400', 'bg-amber-500/20', 'text-amber-300');
+                    d.classList.add('border', 'border-white/15', 'bg-white/5');
+                });
+                el.classList.remove('border', 'border-white/15', 'bg-white/5');
+                el.classList.add('border-2', 'border-amber-400', 'bg-amber-500/20', 'text-amber-300');
+                selectedDifficulty = el.dataset.diff;
+            });
+        });
+
+        // Botón Audio en menú
+        document.getElementById('toggle-sound-menu').addEventListener('click', () => {
+            audio.init();
+            audio.enabled = !audio.enabled;
+            document.getElementById('sound-icon-menu').textContent = audio.enabled ? '🔊' : '🔇';
+        });
+
+        // Iniciar Carrera
+        document.getElementById('start-race-btn').addEventListener('click', () => {
+            audio.init();
+            document.getElementById('start-screen').classList.add('hidden');
+            document.getElementById('hud').classList.remove('hidden');
+            setupRace();
+        });
+
+        // Botones del HUD y Modales
+        document.getElementById('btn-camera').addEventListener('click', () => {
+            gameState.cameraMode = (gameState.cameraMode + 1) % 3;
+        });
+
+        document.getElementById('btn-pause').addEventListener('click', () => {
+            if (gameState.status === 'racing') {
+                gameState.status = 'paused';
+                const pm = document.getElementById('pause-modal');
+                pm.classList.remove('hidden');
+                pm.classList.add('flex');
+            }
+        });
+
+        document.getElementById('btn-resume').addEventListener('click', () => {
+            const pm = document.getElementById('pause-modal');
+            pm.classList.add('hidden');
+            pm.classList.remove('flex');
+            gameState.startTime = performance.now() - gameState.elapsedTime;
+            gameState.status = 'racing';
+        });
+
+        function restartCurrentRace() {
+            document.getElementById('pause-modal').classList.add('hidden');
+            document.getElementById('pause-modal').classList.remove('flex');
+            document.getElementById('finish-modal').classList.add('hidden');
+            document.getElementById('finish-modal').classList.remove('flex');
+            setupRace();
+        }
+
+        function returnToMainMenu() {
+            gameState.status = 'menu';
+            document.getElementById('pause-modal').classList.add('hidden');
+            document.getElementById('pause-modal').classList.remove('flex');
+            document.getElementById('finish-modal').classList.add('hidden');
+            document.getElementById('finish-modal').classList.remove('flex');
+            document.getElementById('hud').classList.add('hidden');
+            document.getElementById('start-screen').classList.remove('hidden');
+        }
+
+        document.getElementById('btn-restart').addEventListener('click', restartCurrentRace);
+        document.getElementById('btn-finish-restart').addEventListener('click', restartCurrentRace);
+        document.getElementById('btn-quit').addEventListener('click', returnToMainMenu);
+        document.getElementById('btn-finish-menu').addEventListener('click', returnToMainMenu);
+
+        // Eventos de Teclado
+        window.addEventListener('keydown', e => {
+            const code = e.code;
+            if (code === 'ArrowUp' || code === 'KeyW') input.up = true;
+            if (code === 'ArrowDown' || code === 'KeyS') input.down = true;
+            if (code === 'ArrowLeft' || code === 'KeyA') input.left = true;
+            if (code === 'ArrowRight' || code === 'KeyD') input.right = true;
+            if (code === 'ShiftLeft' || code === 'ShiftRight' || code === 'KeyN') input.nitro = true;
+            if (code === 'Space') input.handbrake = true;
+            if (code === 'KeyC') gameState.cameraMode = (gameState.cameraMode + 1) % 3;
+        });
+
+        window.addEventListener('keyup', e => {
+            const code = e.code;
+            if (code === 'ArrowUp' || code === 'KeyW') input.up = false;
+            if (code === 'ArrowDown' || code === 'KeyS') input.down = false;
+            if (code === 'ArrowLeft' || code === 'KeyA') input.left = false;
+            if (code === 'ArrowRight' || code === 'KeyD') input.right = false;
+            if (code === 'ShiftLeft' || code === 'ShiftRight' || code === 'KeyN') input.nitro = false;
+            if (code === 'Space') input.handbrake = false;
+        });
+
+        // Controles Táctiles en Pantalla (Móviles / Tablets)
+        function bindTouchButton(id, inputKey) {
+            const btn = document.getElementById(id);
+            if (!btn) return;
+            const activate = e => {
+                e.preventDefault();
+                input[inputKey] = true;
+                btn.classList.add('active');
+            };
+            const deactivate = e => {
+                e.preventDefault();
+                input[inputKey] = false;
+                btn.classList.remove('active');
+            };
+            btn.addEventListener('touchstart', activate, { passive: false });
+            btn.addEventListener('touchend', deactivate, { passive: false });
+            btn.addEventListener('touchcancel', deactivate, { passive: false });
+            btn.addEventListener('mousedown', activate);
+            btn.addEventListener('mouseup', deactivate);
+            btn.addEventListener('mouseleave', deactivate);
+        }
+
+        bindTouchButton('touch-left', 'left');
+        bindTouchButton('touch-right', 'right');
+        bindTouchButton('touch-gas', 'up');
+        bindTouchButton('touch-brake', 'down');
+        bindTouchButton('touch-nitro', 'nitro');
+
+        // Ajuste responsivo al cambiar el tamaño de ventana
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // -------------------- 10. BUCLE PRINCIPAL DE ANIMACIÓN --------------------
+        let lastFrameTime = performance.now();
+        let previewAngle = 0;
+
+        function animate(now) {
+            requestAnimationFrame(animate);
+            const dt = Math.min(0.05, (now - lastFrameTime) / 1000);
+            lastFrameTime = now;
+
+            if (gameState.status === 'menu') {
+                // Cámara panorámica orbital sobre el circuito del Altiplano mientras está en el menú
+                previewAngle += dt * 0.12;
+                const camX = 280 + Math.cos(previewAngle) * 380;
+                const camZ = -50 + Math.sin(previewAngle) * 380;
+                camera.position.set(camX, 85, camZ);
+                camera.lookAt(260, 5, -60);
+            } else if (gameState.status === 'countdown' || gameState.status === 'racing') {
+                updatePlayerPhysics(dt);
+                updateAICars(dt);
+                updateParticles(dt);
+                updateCamera(dt);
+                updateHUD();
+            }
+
+            renderer.render(scene, camera);
+        }
+
+        window.onload = () => {
+            animate(performance.now());
+        };
+    </script>
+</body>
+</html>
