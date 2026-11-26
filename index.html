@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>INTFOSIN - KM Grand Prix 3D | Oruro, Bolivia</title>
+    <!-- Tailwind CSS para UI moderna y responsiva -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js para renderizado 3D en tiempo real -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- Fuentes deportivas de Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Estilos base y tipografía deportiva optimizada para móvil y escritorio */
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+            -webkit-touch-callout: none;
+        }
+
+        body, html {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100dvh;
+            overflow: hidden;
+            background-color: #090d16;
+            font-family: 'Rajdhani', sans-serif;
+            color: #ffffff;
+        }
+
+        .font-racing {
+            font-family: 'Orbitron', sans-serif;
+        }
+
+        /* Contenedor principal del canvas 3D */
+        #game-container {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100dvh;
+            z-index: 1;
+            touch-action: none;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Permitir desplazamiento vertical limpio en menús si la pantalla del celular es corta */
+        .scrollable-overlay {
+            touch-action: pan-y;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Efecto de líneas de velocidad (Speed Lines) en pantalla cuando se activa el Nitro */
+        #speed-lines {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 5;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+            background: radial-gradient(circle at center, transparent 45%, rgba(0, 210, 255, 0.15) 75%, rgba(255, 200, 0, 0.35) 100%);
+            box-shadow: inset 0 0 90px rgba(0, 180, 255, 0.45);
+        }
+
+        /* Glassmorphism para paneles del HUD y menús */
+        .glass-panel {
+            background: rgba(12, 18, 32, 0.82);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.14);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+        }
+
+        /* Franja decorativa Wiphala / Institucional */
+        .wiphala-bar {
+            height: 5px;
+            background: linear-gradient(90deg,
+                #e11d48 0%, #e11d48 14.2%,
+                #f97316 14.2%, #f97316 28.4%,
+                #eab308 28.4%, #eab308 42.6%,
+                #ffffff 42.6%, #ffffff 56.8%,
+                #16a34a 56.8%, #16a34a 71%,
+                #2563eb 71%, #2563eb 85.2%,
+                #7e22ce 85.2%, #7e22ce 100%);
+        }
+
+        /* Botones táctiles en pantalla con soporte multitouch y safe-area */
+        .touch-zone {
+            touch-action: none;
+        }
+
+        .touch-btn {
+            touch-action: none;
+            background: rgba(15, 23, 42, 0.72);
+            border: 2px solid rgba(255, 255, 255, 0.28);
+            backdrop-filter: blur(6px);
+            -webkit-backdrop-filter: blur(6px);
+            transition: transform 0.06s, background-color 0.06s, border-color 0.06s;
+        }
+
+        .touch-btn:active, .touch-btn.active {
+            transform: scale(0.93);
+            background: rgba(234, 179, 8, 0.5);
+            border-color: #facc15;
+        }
+
+        .safe-hud {
+            padding-top: max(0.65rem, env(safe-area-inset-top));
+            padding-bottom: max(0.65rem, env(safe-area-inset-bottom));
+            padding-left: max(0.65rem, env(safe-area-inset-left));
+            padding-right: max(0.65rem, env(safe-area-inset-right));
+        }
+
+        /* Animación de pulso para alertas */
+        @keyframes pulseFast {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.06); opacity: 0.85; }
+        }
+        .animate-pulse-fast {
+            animation: pulseFast 0.8s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Lienzo 3D -->
+    <div id="game-container"></div>
+
+    <!-- Efecto visual de túnel de velocidad / Nitro -->
+    <div id="speed-lines"></div>
+
+    <!-- ================= PANTALLA DE INICIO / GARAGE ================= -->
+    <div id="start-screen" class="scrollable-overlay fixed inset-0 z-30 flex items-start sm:items-center justify-center p-3 sm:p-6 bg-gradient-to-b from-slate-950/80 via-slate-900/75 to-slate-950/90 overflow-y-auto">
+        <div class="glass-panel rounded-2xl max-w-4xl w-full overflow-hidden border border-amber-500/30 my-auto">
+            <!-- Barra superior con colores institucionales y Wiphala -->
+            <div class="wiphala-bar"></div>
+
+            <div class="p-4 sm:p-8">
+                <!-- Encabezado Institucional INTFOSIN - KM -->
+                <div class="flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4 border-b border-white/10 pb-4 sm:pb-5 mb-5 sm:mb-6">
+                    <div class="flex items-center gap-3 sm:gap-4 text-center sm:text-left">
+                        <!-- Emblema SVG estilizado de INTFOSIN - KM -->
+                        <div class="w-14 h-14 sm:w-20 sm:h-20 rounded-full bg-gradient-to-br from-red-600 via-amber-500 to-yellow-400 p-1 shadow-lg shadow-amber-500/20 flex-shrink-0">
+                            <div class="w-full h-full rounded-full bg-slate-900 flex flex-col items-center justify-center border-2 border-yellow-300 relative overflow-hidden">
+                                <div class="wiphala-bar w-full absolute top-0"></div>
+                                <span class="font-racing font-black text-xs sm:text-sm text-yellow-400 tracking-wider leading-none mt-1">KM</span>
+                                <span class="text-[9px] font-bold text-white tracking-tight leading-none mt-0.5">INTFOSIN</span>
+                                <span class="text-[7px] text-amber-300 uppercase mt-0.5">Oruro • Bolivia</span>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-400/30 text-amber-300 text-[11px] sm:text-xs font-bold uppercase tracking-wider mb-1">
+                                <span>🏔️ Circuito Altiplano • 3.735 m s. n. m.</span>
+                            </div>
+                            <h1 class="font-racing text-xl sm:text-4xl font-black tracking-wider text-white uppercase">
+                                GRAND PRIX <span class="text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-amber-400 to-emerald-400">KHANA MARKA</span>
+                            </h1>
+                            <p class="text-xs sm:text-sm text-slate-300 font-medium">
+                                Instituto Técnico de Formación Superior Intercultural <strong class="text-amber-400">"INTFOSIN - KM"</strong> • Oruro, Bolivia
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Botón de Audio -->
+                    <button id="toggle-sound-menu" type="button" class="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs font-bold flex items-center gap-2 transition flex-shrink-0">
+                        <span id="sound-icon-menu">🔊</span>
+                        <span>AUDIO SINTETIZADO</span>
+                    </button>
+                </div>
+
+                <!-- Selección de Vehículo y Dificultad -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6 mb-4 sm:mb-6">
+                    <!-- Columna 1: Selección de Auto -->
+                    <div>
+                        <h2 class="font-racing text-xs sm:text-sm uppercase tracking-wider text-amber-400 mb-2.5 sm:mb-3 flex items-center gap-2">
+                            <span>🏎️</span> 1. Selecciona tu Prototipo
+                        </h2>
+                        <div class="space-y-2 sm:space-y-2.5" id="car-selector">
+                            <!-- Auto 1: Khana Marka GT-R (Institucional) -->
+                            <div data-car="0" class="car-option cursor-pointer p-2.5 sm:p-3 rounded-xl border-2 border-amber-400 bg-amber-500/15 transition flex items-center justify-between gap-2">
+                                <div>
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="font-racing font-bold text-white text-xs sm:text-base">KM-01 KHANA MARKA GT</span>
+                                        <span class="text-[10px] px-2 py-0.5 rounded bg-red-600 text-white font-bold">OFICIAL</span>
+                                    </div>
+                                    <p class="text-xs text-slate-300 mt-0.5">Librea Tricolor & Wiphala • Equilibrio perfecto en curvas</p>
+                                </div>
+                                <div class="text-right text-xs font-bold text-amber-300 flex-shrink-0">
+                                    <div>VEL: 315 km/h</div>
+                                    <div>ACEL: ★★★★☆</div>
+                                </div>
+                            </div>
+
+                            <!-- Auto 2: Sajama Turbo RS -->
+                            <div data-car="1" class="car-option cursor-pointer p-2.5 sm:p-3 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition flex items-center justify-between gap-2">
+                                <div>
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="font-racing font-bold text-white text-xs sm:text-base">SAJAMA V8 BITURBO</span>
+                                        <span class="text-[10px] px-2 py-0.5 rounded bg-emerald-600 text-white font-bold">VELOCIDAD</span>
+                                    </div>
+                                    <p class="text-xs text-slate-300 mt-0.5">Alta velocidad punta para rectas del Altiplano</p>
+                                </div>
+                                <div class="text-right text-xs font-bold text-emerald-400 flex-shrink-0">
+                                    <div>VEL: 340 km/h</div>
+                                    <div>ACEL: ★★★☆☆</div>
+                                </div>
+                            </div>
+
+                            <!-- Auto 3: Quirquincho Evo Rally -->
+                            <div data-car="2" class="car-option cursor-pointer p-2.5 sm:p-3 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 transition flex items-center justify-between gap-2">
+                                <div>
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="font-racing font-bold text-white text-xs sm:text-base">ORURO APEX EVO</span>
+                                        <span class="text-[10px] px-2 py-0.5 rounded bg-sky-600 text-white font-bold">AGILIDAD</span>
+                                    </div>
+                                    <p class="text-xs text-slate-300 mt-0.5">Aceleración explosiva y agarre superior en chicanas</p>
+                                </div>
+                                <div class="text-right text-xs font-bold text-sky-400 flex-shrink-0">
+                                    <div>VEL: 300 km/h</div>
+                                    <div>ACEL: ★★★★★</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Columna 2: Dificultad y Controles -->
+                    <div class="flex flex-col justify-between">
+                        <div>
+                            <h2 class="font-racing text-xs sm:text-sm uppercase tracking-wider text-amber-400 mb-2.5 sm:mb-3 flex items-center gap-2">
+                                <span>⚙️</span> 2. Nivel de Competencia
+                            </h2>
+                            <div class="grid grid-cols-3 gap-2 mb-4 sm:mb-5" id="difficulty-selector">
+                                <button data-diff="easy" type="button" class="diff-option py-2 sm:py-2.5 px-2 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-xs font-bold uppercase transition">
+                                    Novato<br><span class="text-[10px] text-slate-400 font-normal">2 Vueltas</span>
+                                </button>
+                                <button data-diff="normal" type="button" class="diff-option py-2 sm:py-2.5 px-2 rounded-xl border-2 border-amber-400 bg-amber-500/20 text-xs font-bold uppercase text-amber-300 transition">
+                                    Profesional<br><span class="text-[10px] text-amber-200/80 font-normal">3 Vueltas</span>
+                                </button>
+                                <button data-diff="hard" type="button" class="diff-option py-2 sm:py-2.5 px-2 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-xs font-bold uppercase transition">
+                                    Maestro KM<br><span class="text-[10px] text-slate-400 font-normal">3 Vueltas + Tráfico</span>
+                                </button>
+                            </div>
+
+                            <!-- Guía rápida de controles -->
+                            <div class="p-3 sm:p-3.5 rounded-xl bg-slate-950/70 border border-white/10">
+                                <h3 class="text-xs font-bold uppercase text-slate-300 mb-2">Controles (Teclado y Celular Táctil):</h3>
+                                <div class="grid grid-cols-2 gap-1.5 sm:gap-2 text-xs text-slate-300">
+                                    <div class="flex items-center gap-1.5">
+                                        <kbd class="px-1.5 py-0.5 bg-slate-800 border border-slate-600 rounded text-amber-400 font-mono text-[11px]">W / ↑</kbd>
+                                        <span>Acelerar</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <kbd class="px-1.5 py-0.5 bg-slate-800 border border-slate-600 rounded text-amber-400 font-mono text-[11px]">S / ↓</kbd>
+                                        <span>Frenar / Reversa</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <kbd class="px-1.5 py-0.5 bg-slate-800 border border-slate-600 rounded text-amber-400 font-mono text-[11px]">A D / ← →</kbd>
+                                        <span>Dirección</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <kbd class="px-1.5 py-0.5 bg-slate-800 border border-slate-600 rounded text-cyan-400 font-mono text-[11px]">SHIFT / N</kbd>
+                                        <span>Turbo Nitro</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5 col-span-2">
+                                        <kbd class="px-1.5 py-0.5 bg-slate-800 border border-slate-600 rounded text-rose-400 font-mono text-[11px]">ESPACIO</kbd>
+                                        <span>Freno • <kbd class="px-1 py-0.5 bg-slate-800 border border-slate-600 rounded text-white font-mono text-[11px]">C</kbd> Cámara • Táctil en pantalla</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Botón Iniciar Carrera -->
+                        <button id="start-race-btn" type="button" class="mt-4 sm:mt-5 w-full py-3.5 sm:py-4 rounded-xl font-racing font-black text-sm sm:text-lg tracking-widest uppercase bg-gradient-to-r from-red-600 via-amber-500 to-emerald-600 hover:from-red-500 hover:via-amber-400 hover:to-emerald-500 text-slate-950 shadow-lg shadow-amber-500/30 transform hover:scale-[1.01] active:scale-[0.99] transition cursor-pointer">
+                            🏁 INICIAR CARRERA
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= HUD EN CARRERA ================= -->
+    <div id="hud" class="safe-hud fixed inset-0 z-20 pointer-events-none hidden flex flex-col justify-between">
+
+        <!-- Barra Superior del HUD: Posición, Vuelta, Tiempo y Progreso -->
+        <div class="flex items-start justify-between gap-1.5 sm:gap-2 w-full">
+
+            <!-- Bloque Izquierdo: Posición y Vueltas -->
+            <div class="glass-panel rounded-xl px-2.5 py-1.5 sm:px-3.5 sm:py-2 flex items-center gap-2.5 sm:gap-4 border-l-4 border-amber-400 flex-shrink-0">
+                <div>
+                    <div class="text-[9px] sm:text-[10px] uppercase tracking-wider text-slate-400 font-bold">Pos</div>
+                    <div class="font-racing text-lg sm:text-3xl font-black text-amber-400 leading-none">
+                        <span id="hud-pos">1</span><span class="text-xs sm:text-sm text-slate-300 font-bold">/6</span>
+                    </div>
+                </div>
+                <div class="h-6 sm:h-8 w-px bg-white/15"></div>
+                <div>
+                    <div class="text-[9px] sm:text-[10px] uppercase tracking-wider text-slate-400 font-bold">Vuelta</div>
+                    <div class="font-racing text-base sm:text-2xl font-bold text-white leading-none">
+                        <span id="hud-lap">1</span><span class="text-xs sm:text-sm text-slate-400">/<span id="hud-max-laps">3</span></span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bloque Central: Barra de progreso del circuito e identidad institucional -->
+            <div class="hidden md:flex flex-col items-center glass-panel rounded-xl px-5 py-2 min-w-[280px]">
+                <div class="flex items-center justify-between w-full text-[11px] font-bold tracking-wider uppercase mb-1">
+                    <span class="text-amber-400">INTFOSIN - KM</span>
+                    <span class="text-slate-300">CIRCUITO KHANA MARKA</span>
+                </div>
+                <div class="w-full h-2.5 bg-slate-800 rounded-full overflow-hidden relative border border-white/10">
+                    <div id="hud-progress-bar" class="h-full bg-gradient-to-r from-red-500 via-amber-400 to-emerald-400 w-0 transition-all duration-100"></div>
+                </div>
+            </div>
+
+            <!-- Bloque Derecho: Cronómetro y Botones Rápidos -->
+            <div class="flex items-center gap-1.5 sm:gap-2 pointer-events-auto flex-shrink-0">
+                <div class="glass-panel rounded-xl px-2.5 py-1.5 sm:px-3.5 sm:py-2 text-right border-r-4 border-emerald-400">
+                    <div class="text-[9px] sm:text-[10px] uppercase tracking-wider text-slate-400 font-bold">Tiempo</div>
+                    <div id="hud-time" class="font-racing text-sm sm:text-2xl font-bold text-white leading-none">00:00.00</div>
+                </div>
+                <button id="btn-camera" type="button" title="Cambiar Cámara (C)" class="touch-btn glass-panel w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center text-sm sm:text-base font-bold transition">
+                    🎥
+                </button>
+                <button id="btn-pause" type="button" title="Pausar / Reiniciar" class="touch-btn glass-panel w-10 h-10 sm:w-11 sm:h-11 rounded-xl flex items-center justify-center text-sm sm:text-base font-bold transition">
+                    ⏸️
+                </button>
+            </div>
+        </div>
+
+        <!-- Semáforo de Largada / Mensajes Centrales -->
+        <div id="center-banner" class="self-center text-center my-auto px-2">
+            <div id="countdown-display" class="font-racing text-5xl sm:text-8xl font-black text-amber-400 drop-shadow-[0_5px_25px_rgba(251,191,36,0.6)] hidden">
+                3
+            </div>
+            <div id="wrong-way-alert" class="hidden px-4 py-2 rounded-xl bg-red-600/90 border-2 border-white font-racing font-black text-sm sm:text-2xl tracking-wider uppercase animate-pulse-fast">
+                ⚠️ SENTIDO CONTRARIO
+            </div>
+        </div>
+
+        <!-- Zona Inferior del HUD: Controles Táctiles (Móvil) + Tacómetro -->
+        <div class="flex items-end justify-between gap-1.5 sm:gap-2 w-full">
+
+            <!-- Controles Táctiles Izquierdos (Dirección) -->
+            <div id="mobile-controls-left" class="touch-zone flex md:hidden items-center gap-2 pointer-events-auto pb-0.5 flex-shrink-0">
+                <button id="touch-left" type="button" aria-label="Girar izquierda" class="touch-btn w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold shadow-lg">◀</button>
+                <button id="touch-right" type="button" aria-label="Girar derecha" class="touch-btn w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center text-xl sm:text-2xl font-bold shadow-lg">▶</button>
+            </div>
+
+            <!-- Minimapa del Circuito (Tablet / Escritorio) -->
+            <div class="hidden sm:block glass-panel rounded-2xl p-2 border border-white/15">
+                <canvas id="minimap-canvas" width="130" height="130" class="rounded-xl bg-slate-950
